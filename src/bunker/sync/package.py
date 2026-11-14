@@ -5,6 +5,8 @@ import shutil
 from datetime import date
 from pathlib import Path
 
+from bunker.config import load_sources_config
+from bunker.crypto.signing import load_private_key
 from bunker.paths import BunkerPaths
 from bunker.sync.manifest import ManifestBuilder
 from bunker.sync.schema_doc import build_schema_json
@@ -15,7 +17,27 @@ logger = logging.getLogger(__name__)
 def collect_parquet_files(parquet_root: Path) -> list[Path]:
     if not parquet_root.is_dir():
         return []
-    return sorted(parquet_root.rglob("*.parquet"))
+    files: list[Path] = []
+    for pattern in ("**/_current.parquet", "**/ingest_date=*/part-*.parquet"):
+        files.extend(sorted(parquet_root.glob(pattern)))
+    return files
+
+
+def _merge_hints_from_config(root: Path, sources: list[dict]) -> list[dict]:
+    hints: list[dict] = []
+    for src in sources:
+        pk = src.get("primary_key")
+        part = src.get("parquet_partition")
+        if pk and part:
+            hints.append(
+                {
+                    "source_id": src["id"],
+                    "target_partition": part,
+                    "primary_key": pk,
+                }
+            )
+    _ = root  # reserved for future config paths
+    return hints
 
 
 def package_airgap_sync(
@@ -23,10 +45,10 @@ def package_airgap_sync(
     *,
     on: date | None = None,
     include_readme: bool = True,
+    private_key_path: Path | None = None,
 ) -> Path:
     """
-    Create bunker_sync_YYYY-MM-DD/ with Parquet shards, schema.json, manifest.json.
-    Suitable for LAN copy, USB handoff, or P2P folder sync — queryable by DuckDB offline.
+    Create bunker_sync_YYYY-MM-DD/ with Parquet shards, schema.json, signed manifest.json.
     """
     sync_dir = paths.sync_folder(on)
     shards = sync_dir / "shards"
@@ -56,11 +78,11 @@ def package_airgap_sync(
                     "Project Bunker — Air-Gapped Sync Bundle",
                     "Copyright © 2026 Thomas Gollogly. All rights reserved.",
                     "",
-                    "Query in DuckDB (no imports required):",
-                    "  SELECT * FROM read_parquet('shards/*.parquet');",
+                    "Query in DuckDB:",
+                    "  SELECT * FROM read_parquet('shards/*.parquet', union_by_name=true);",
                     "",
-                    "Verify integrity:",
-                    "  bunker verify-sync .",
+                    "Verify:",
+                    "  bunker verify-sync <bundle> --public-key data/keys/signing.pub.pem",
                 ]
             )
             + "\n",
@@ -68,6 +90,23 @@ def package_airgap_sync(
         )
         manifest_targets.append(readme)
 
-    ManifestBuilder(sync_dir).build(manifest_targets)
-    logger.info("Packaged air-gap sync at %s", sync_dir)
+    key_path = private_key_path or (paths.root / "data" / "keys" / "signing.pem")
+    if not key_path.is_file():
+        raise FileNotFoundError(
+            f"Signing key not found at {key_path}. Run: bunker keygen"
+        )
+    private_key = load_private_key(key_path)
+
+    cfg_path = paths.root / "config" / "sources.yaml"
+    merge_hints: list[dict] = []
+    if cfg_path.is_file():
+        cfg = load_sources_config(cfg_path)
+        merge_hints = _merge_hints_from_config(paths.root, cfg.get("sources", []))
+
+    ManifestBuilder(sync_dir).build(
+        manifest_targets,
+        private_key=private_key,
+        merge_hints=merge_hints or None,
+    )
+    logger.info("Packaged signed air-gap sync at %s", sync_dir)
     return sync_dir
