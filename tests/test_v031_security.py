@@ -22,6 +22,7 @@ from bunker.continuity.serve.app import create_app
 from bunker.continuity.serve.auth import (
     ServeAuthConfig,
     auth_configured,
+    login_attempts_path,
     save_password_hash,
 )
 from bunker.continuity.watch.health import (
@@ -186,7 +187,10 @@ def test_serve_non_loopback_401_without_session(tmp_path: Path, bunker_data_key:
     auth_path = paths.continuity_root / "serve_auth.json"
     save_password_hash(auth_path, "secret")
     assert auth_configured(auth_path)
-    auth = ServeAuthConfig(auth_path=auth_path)
+    auth = ServeAuthConfig(
+        auth_path=auth_path,
+        rate_limit_path=login_attempts_path(paths.continuity_root),
+    )
     app = create_app(paths, {"continuity": {}}, bind_host="0.0.0.0", auth=auth)
     client = TestClient(app)
     assert client.get("/").status_code == 401
