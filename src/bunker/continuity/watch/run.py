@@ -25,6 +25,11 @@ def watch_once(
         degraded_after_failures=int(wcfg.get("degraded_after_failures", 2)),
         down_after_failures=int(wcfg.get("down_after_failures", 3)),
         recovery_after_successes=int(wcfg.get("recovery_after_successes", 2)),
+        watched_services=wcfg.get(
+            "watched_services",
+            ["Exchange Online", "Microsoft Teams"],
+        ),
+        auth_probe_path=wcfg.get("auth_probe_path", "/me/messages?$top=1"),
     )
     prev = load_watch_state(paths.state_file)
     new = run_watch(
