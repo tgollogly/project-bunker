@@ -11,6 +11,7 @@
 
 - CI smoke job runs full `pytest` with `BUNKER_DATA_KEY` still exported after the demo.
 - **Serve UI** — navy/teal offline dashboard (`/static/continuity.css`), status banner on every page, home cards, probe dots, contacts search (`?q=`), `/runbooks` views; README screenshots retaken with seeded DOWN state.
+- **Windows**: `tzdata` dependency for Europe/London formatting in the serve UI.
 
 ## [0.3.4] — 2026-11-14
 
