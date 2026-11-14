@@ -196,6 +196,7 @@ def test_serve_non_loopback_401_without_session(tmp_path: Path, bunker_data_key:
     assert client.get("/").status_code == 401
 
 
+@pytest.mark.skipif(__import__("sys").platform == "win32", reason="POSIX-only permission check")
 def test_signing_key_permissions_posix(tmp_path: Path) -> None:
     priv = tmp_path / "signing.pem"
     pub = tmp_path / "signing.pub.pem"
