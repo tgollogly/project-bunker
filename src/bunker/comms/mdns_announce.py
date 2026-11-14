@@ -10,7 +10,8 @@ def announce_without_deps(service_name: str = "bunker-sync", port: int = 41567) 
     """
     Best-effort LAN announcement without external DNS.
 
-    Uses UDP subnet broadcast; optional `mdns` extra installs zeroconf for standards-based discovery.
+    Uses UDP subnet broadcast; optional `mdns` extra installs zeroconf
+    for standards-based discovery.
     """
     hostname = socket.gethostname()
     msg = f"BUNKER|M={service_name}|H={hostname}|P={port}".encode()
@@ -53,13 +54,20 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description="Project Bunker LAN service announcement")
     p.add_argument("--name", default="bunker-sync")
     p.add_argument("--port", type=int, default=41567)
-    p.add_argument("--zeroconf", action="store_true", help="Use zeroconf (pip install project-bunker[mdns])")
+    p.add_argument(
+        "--zeroconf",
+        action="store_true",
+        help="Use zeroconf (pip install project-bunker[mdns])",
+    )
     args = p.parse_args(argv)
     if args.zeroconf:
         try:
             announce_zeroconf(args.name, args.port)
         except ImportError:
-            print("zeroconf not installed; use: pip install 'project-bunker[mdns]'", file=sys.stderr)
+            print(
+                "zeroconf not installed; use: pip install 'project-bunker[mdns]'",
+                file=sys.stderr,
+            )
             return 1
     else:
         announce_without_deps(args.name, args.port)

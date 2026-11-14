@@ -1,4 +1,4 @@
-from bunker.sync.manifest import ManifestBuilder, sha256_file
+from bunker.sync.manifest import ManifestBuilder
 from bunker.sync.verify import verify_sync_folder
 
 

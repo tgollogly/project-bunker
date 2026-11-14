@@ -22,8 +22,16 @@ def _project_root() -> Path:
     return Path.cwd()
 
 
+DEFAULT_CONFIG = "config/sources.yaml"
+
+
 @click.group()
-@click.option("--config", "config_path", type=click.Path(path_type=Path), default="config/sources.yaml")
+@click.option(
+    "--config",
+    "config_path",
+    type=click.Path(path_type=Path),
+    default=DEFAULT_CONFIG,
+)
 @click.pass_context
 def main(ctx: click.Context, config_path: Path) -> None:
     """Project Bunker — offline-first DuckDB data engine."""

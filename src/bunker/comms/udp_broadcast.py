@@ -3,9 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import socket
-import sys
 from datetime import datetime, timezone
-
 
 DEFAULT_PORT = 41567
 BROADCAST_ADDR = "255.255.255.255"
@@ -47,7 +45,8 @@ def main(argv: list[str] | None = None) -> int:
     s = sub.add_parser("send", help="Broadcast an alert")
     s.add_argument("message")
     s.add_argument("--port", type=int, default=DEFAULT_PORT)
-    sub.add_parser("listen", help="Listen for alerts").add_argument("--port", type=int, default=DEFAULT_PORT)
+    listen_p = sub.add_parser("listen", help="Listen for alerts")
+    listen_p.add_argument("--port", type=int, default=DEFAULT_PORT)
     args = p.parse_args(argv)
     if args.cmd == "send":
         send_alert(args.message, port=args.port)

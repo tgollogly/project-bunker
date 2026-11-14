@@ -77,7 +77,9 @@ class ResilientFetcher:
                 with httpx.Client(timeout=self.timeout, follow_redirects=True) as client:
                     resp = client.get(
                         url,
-                        headers={"User-Agent": "ProjectBunker/0.1 (+offline-first; Thomas Gollogly)"},
+                        headers={
+                            "User-Agent": "ProjectBunker/0.1 (+offline-first; Thomas Gollogly)",
+                        },
                     )
                     resp.raise_for_status()
                     body = resp.content

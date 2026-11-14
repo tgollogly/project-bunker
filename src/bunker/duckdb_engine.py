@@ -18,9 +18,11 @@ class BunkerDuckDB:
 
     def register_parquet_glob(self, name: str, glob_pattern: str) -> None:
         safe = glob_pattern.replace("'", "''")
-        self._con.execute(
-            f"CREATE OR REPLACE VIEW {name} AS SELECT * FROM read_parquet('{safe}', union_by_name=true)"
+        sql = (
+            f"CREATE OR REPLACE VIEW {name} AS "
+            f"SELECT * FROM read_parquet('{safe}', union_by_name=true)"
         )
+        self._con.execute(sql)
 
     def query(self, sql: str, params: list[Any] | None = None) -> duckdb.DuckDBPyRelation:
         if params:

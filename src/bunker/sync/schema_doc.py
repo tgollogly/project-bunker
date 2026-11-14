@@ -22,7 +22,6 @@ def build_schema_json(parquet_files: list[Path], out_path: Path) -> dict[str, An
     con = duckdb.connect(database=":memory:")
     try:
         for pf in parquet_files:
-            rel_name = pf.stem
             info_rows = con.execute(
                 "SELECT * FROM parquet_schema(?)",
                 [str(pf)],
