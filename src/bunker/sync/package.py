@@ -16,6 +16,18 @@ from bunker.sync.schema_doc import build_schema_json
 logger = logging.getLogger(__name__)
 
 
+def _shard_dest_name(src: Path, parquet_root: Path) -> str:
+    try:
+        return src.relative_to(parquet_root).as_posix().replace("/", "__")
+    except ValueError:
+        parts = src.parts
+        if "continuity" in parts:
+            idx = parts.index("continuity")
+            tail = parts[idx + 1 :]
+            return "continuity__" + "__".join(tail)
+        return src.name.replace("/", "__")
+
+
 def collect_parquet_files(parquet_root: Path, extra_roots: list[Path] | None = None) -> list[Path]:
     files: list[Path] = []
     roots = [parquet_root, *(extra_roots or [])]
@@ -76,12 +88,18 @@ def package_airgap_sync(
     sources = collect_parquet_files(paths.parquet_root, extra_roots=extra)
     copied: list[Path] = []
     for src in sources:
-        dest = shards / src.relative_to(paths.parquet_root).as_posix().replace("/", "__")
+        dest = shards / _shard_dest_name(src, paths.parquet_root)
         shutil.copy2(src, dest)
         copied.append(dest)
 
     if not copied:
-        logger.warning("No Parquet files found under %s", paths.parquet_root)
+        shutil.rmtree(sync_dir)
+        raise ValueError(
+            "Nothing to package: no open-data Parquet shards and no continuity cache "
+            "(encrypted .parquet.enc) under the configured data roots. "
+            "Run `bunker ingest`, `bunker continuity sync`, or `bunker continuity seed-sample`, "
+            "then run `bunker sync-package` again."
+        )
 
     schema_path = sync_dir / "schema.json"
     build_schema_json(copied, schema_path)

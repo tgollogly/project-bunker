@@ -2,6 +2,9 @@
 {% block body %}
 <h1>Bunker Continuity</h1>
 <p>M365 watch: <strong>{{ watch_state }}</strong></p>
+{% if featured_contact %}
+<p>Offline roster includes <strong>{{ featured_contact }}</strong> (cached contacts).</p>
+{% endif %}
 {% if element_url %}
 <p><a href="{{ element_url }}">Open backup chat (Element)</a></p>
 {% else %}

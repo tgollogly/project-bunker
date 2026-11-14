@@ -20,15 +20,8 @@ def _seed() -> None:
         os.environ.get("BUNKER_DATA_KEY", "0123456789abcdef0123456789abcdef"),
     )
     subprocess.check_call(
-        [
-            sys.executable,
-            "-m",
-            "pytest",
-            "-q",
-            "--no-cov",
-            "tests/test_continuity_core.py::test_graph_calendar_and_contacts_sync",
-        ],
-        env={**os.environ, "PYTEST_ADDOPTS": ""},
+        [sys.executable, "-m", "bunker.cli", "continuity", "seed-sample"],
+        env=os.environ,
     )
     subprocess.check_call(
         [

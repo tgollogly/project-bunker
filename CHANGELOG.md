@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.3.4] — 2026-11-14
+
+### Added
+
+- `bunker continuity seed-sample` — writes fictional calendar, contacts, and runbook data into the real continuity data root (encrypted with `BUNKER_DATA_KEY`).
+- CI **smoke** job (Ubuntu, Python 3.12): keygen, outage demo, serve HTTP checks, `sync-package` + `verify-sync`.
+
+### Fixed
+
+- `scripts/continuity-outage-demo.sh` uses `seed-sample` instead of pytest (no coverage abort on fresh clones).
+- `bunker doctor` reads `continuity.watch.probe_hosts` (shipped `config/continuity.yaml`).
+- `bunker sync-package` exits non-zero when there is no Parquet or continuity cache to ship (continuity `.parquet.enc` still included when present).
+
+### Changed
+
+- README: “Try it in 2 minutes” quick start with sample data.
+- Serve home page shows the first cached contact name when sample/real data exists.
+
 ## [0.3.3] — 2026-11-14
 
 ### Added

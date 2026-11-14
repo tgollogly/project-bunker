@@ -7,6 +7,8 @@ from typing import Any
 
 import duckdb
 
+from bunker.continuity.parquet_io import ENCRYPTED_PARQUET_SUFFIX
+
 
 def build_schema_json(parquet_files: list[Path], out_path: Path) -> dict[str, Any]:
     datasets: list[dict[str, Any]] = []
@@ -22,6 +24,19 @@ def build_schema_json(parquet_files: list[Path], out_path: Path) -> dict[str, An
     con = duckdb.connect(database=":memory:")
     try:
         for pf in parquet_files:
+            if pf.name.endswith(ENCRYPTED_PARQUET_SUFFIX):
+                datasets.append(
+                    {
+                        "parquet_file": pf.name,
+                        "relative_path": pf.name,
+                        "encrypted": True,
+                        "note": (
+                            "Continuity Fernet-encrypted Parquet shard "
+                            "(decrypt with BUNKER_DATA_KEY before DuckDB)."
+                        ),
+                    }
+                )
+                continue
             info_rows = con.execute(
                 "SELECT * FROM parquet_schema(?)",
                 [str(pf)],

@@ -11,6 +11,7 @@ from bunker.config import get_source, load_sources_config
 from bunker.continuity.config import load_continuity_config
 from bunker.continuity.encryption import rekey_tree
 from bunker.continuity.paths import ContinuityPaths
+from bunker.continuity.seed_sample import seed_sample_data
 from bunker.continuity.serve.app import create_app
 from bunker.continuity.serve.auth import (
     ServeAuthConfig,
@@ -96,6 +97,9 @@ def cmd_sync_package(ctx: click.Context) -> None:
     try:
         out = package_airgap_sync(paths)
     except FileNotFoundError as exc:
+        click.echo(str(exc), err=True)
+        sys.exit(1)
+    except ValueError as exc:
         click.echo(str(exc), err=True)
         sys.exit(1)
     click.echo(str(out))
@@ -202,6 +206,19 @@ def cmd_continuity_sync(ctx: click.Context) -> None:
 def cmd_continuity_status(ctx: click.Context) -> None:
     paths, _cfg = _continuity_cfg()
     click.echo(json.dumps(continuity_status(paths), indent=2))
+
+
+@continuity.command("seed-sample")
+@click.pass_context
+def cmd_continuity_seed_sample(ctx: click.Context) -> None:
+    """Write fictional calendar, contacts, and runbook data for local demos (no Graph)."""
+    paths, _cfg = _continuity_cfg()
+    try:
+        out = seed_sample_data(paths)
+    except Exception as exc:
+        click.echo(f"ERROR: {exc}", err=True)
+        sys.exit(1)
+    click.echo(json.dumps(out, indent=2))
 
 
 @continuity.command("rekey")
