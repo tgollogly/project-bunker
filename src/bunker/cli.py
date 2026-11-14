@@ -8,9 +8,12 @@ from pathlib import Path
 import click
 
 from bunker.config import get_source, load_sources_config
+from bunker.crypto.signing import load_public_key
 from bunker.duckdb_engine import BunkerDuckDB
 from bunker.ingest.pipeline import ingest_source
+from bunker.keys import keygen
 from bunker.paths import BunkerPaths
+from bunker.sync.import_bundle import import_sync_bundle
 from bunker.sync.package import package_airgap_sync
 from bunker.sync.verify import verify_sync_folder
 
@@ -74,14 +77,57 @@ def cmd_ingest_all(ctx: click.Context, offline: bool) -> None:
 @click.pass_context
 def cmd_sync_package(ctx: click.Context) -> None:
     paths: BunkerPaths = ctx.obj["paths"]
-    out = package_airgap_sync(paths)
+    try:
+        out = package_airgap_sync(paths)
+    except FileNotFoundError as exc:
+        click.echo(str(exc), err=True)
+        sys.exit(1)
     click.echo(str(out))
+
+
+@main.command("import-sync")
+@click.argument("sync_dir", type=click.Path(path_type=Path, exists=True))
+@click.option(
+    "--public-key",
+    type=click.Path(path_type=Path, exists=True),
+    default="data/keys/signing.pub.pem",
+)
+@click.pass_context
+def cmd_import_sync(ctx: click.Context, sync_dir: Path, public_key: Path) -> None:
+    paths: BunkerPaths = ctx.obj["paths"]
+    pub = load_public_key(public_key)
+    try:
+        result = import_sync_bundle(sync_dir, paths, public_key=pub)
+    except ValueError as exc:
+        click.echo(str(exc), err=True)
+        sys.exit(1)
+    click.echo(json.dumps(result, indent=2))
+
+
+@main.command("keygen")
+@click.option("--force", is_flag=True, help="Replace existing key pair")
+@click.pass_context
+def cmd_keygen(ctx: click.Context, force: bool) -> None:
+    paths: BunkerPaths = ctx.obj["paths"]
+    try:
+        priv, pub = keygen(paths.root, force=force)
+    except FileExistsError as exc:
+        click.echo(str(exc), err=True)
+        sys.exit(1)
+    click.echo(json.dumps({"private_key": str(priv), "public_key": str(pub)}, indent=2))
 
 
 @main.command("verify-sync")
 @click.argument("sync_dir", type=click.Path(path_type=Path, exists=True))
-def cmd_verify_sync(sync_dir: Path) -> None:
-    ok, errors = verify_sync_folder(sync_dir)
+@click.option(
+    "--public-key",
+    type=click.Path(path_type=Path, exists=True),
+    default="data/keys/signing.pub.pem",
+    help="Trusted Ed25519 public key PEM",
+)
+def cmd_verify_sync(sync_dir: Path, public_key: Path) -> None:
+    pub = load_public_key(public_key)
+    ok, errors = verify_sync_folder(sync_dir, public_key=pub, require_signature=True)
     if ok:
         click.echo("OK — manifest verification passed")
         sys.exit(0)

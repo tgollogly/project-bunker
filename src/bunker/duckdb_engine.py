@@ -24,7 +24,7 @@ class BunkerDuckDB:
         )
         self._con.execute(sql)
 
-    def query(self, sql: str, params: list[Any] | None = None) -> duckdb.DuckDBPyRelation:
+    def query(self, sql: str, params: list[Any] | None = None) -> duckdb.DuckDBPyConnection:
         if params:
             return self._con.execute(sql, params)
         return self._con.execute(sql)
