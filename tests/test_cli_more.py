@@ -1,4 +1,5 @@
 import json
+import sys
 from pathlib import Path
 
 import pytest
@@ -265,6 +266,7 @@ def test_cli_serve_tls_message(
     assert "TLS enabled" in result.output
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="POSIX-only private key mode check")
 def test_load_private_key_rejects_world_readable(
     project_tree: Path, signing_keys: tuple[Path, Path]
 ) -> None:
