@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.3.5] — 2026-11-14
+
+### Fixed
+
+- Tests ignore shell `BUNKER_*` env vars (autouse fixture) so `make test` works after README quick-start exports.
+- Outage alerts: missing `BUNKER_MATRIX_ACCESS_TOKEN` logs **Matrix not configured — skipping** (INFO) instead of a failure line.
+
+### Changed
+
+- CI smoke job runs full `pytest` with `BUNKER_DATA_KEY` still exported after the demo.
+
 ## [0.3.4] — 2026-11-14
 
 ### Added

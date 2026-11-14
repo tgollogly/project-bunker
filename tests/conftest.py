@@ -1,6 +1,26 @@
+import os
 from pathlib import Path
 
 import pytest
+
+_BUNKER_ENV_EXACT = frozenset(
+    {
+        "BUNKER_DATA_KEY",
+        "BUNKER_DATA_KEY_NEW",
+        "BUNKER_MESH_KEY",
+        "BUNKER_SMS_TO",
+        "BUNKER_SP_DRIVE_ID",
+    }
+)
+_BUNKER_ENV_PREFIXES = ("BUNKER_GRAPH_", "BUNKER_MATRIX_", "BUNKER_TWILIO_")
+
+
+@pytest.fixture(autouse=True)
+def isolate_bunker_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Ignore shell BUNKER_* exports so tests only see env they set explicitly."""
+    for key in list(os.environ):
+        if key in _BUNKER_ENV_EXACT or key.startswith(_BUNKER_ENV_PREFIXES):
+            monkeypatch.delenv(key, raising=False)
 from cryptography.fernet import Fernet
 
 from bunker.continuity.paths import ContinuityPaths
