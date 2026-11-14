@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Docs: added README hero banner and non-affiliation/trademark notice.
+- Docs: fix README hero banner layout (cloud/title spacing, connection path, shield shape).
 
 ## [0.3.2] — 2026-11-14
 
