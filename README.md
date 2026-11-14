@@ -3,7 +3,7 @@
 # Project Bunker
 
 [![CI](https://github.com/tgollogly/project-bunker/actions/workflows/ci.yml/badge.svg)](https://github.com/tgollogly/project-bunker/actions/workflows/ci.yml)
-![Version](https://img.shields.io/badge/version-0.3.2-informational)
+![Version](https://img.shields.io/badge/version-0.3.3-informational)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 
 _Project Bunker is an independent, free, open-source project. It is not affiliated with, endorsed by, or sponsored by Microsoft, The Bunker, Bunker Technical Solutions, or any other company. Microsoft 365, Outlook, Teams and SharePoint are trademarks of Microsoft Corporation._
@@ -38,7 +38,11 @@ Bunker:
 2. **`bunker watch`** tracks reachability (Outlook/Teams URLs + optional Graph service health) with **OK / DEGRADED / DOWN** and hysteresis.
 3. On **DOWN**, writes a **local incident** and alerts **Matrix** (optional) + **SMS** (stub/Twilio) + **HMAC-signed LAN UDP**.
 4. **`bunker serve`** — offline FastAPI web UI on loopback (Jinja2 autoescape, no CDN). Use `bunker serve set-password` before binding to a LAN address.
-5. **`bunker sync-package`** — **Ed25519-signed** bundles for USB/LAN site transfer (existing Bunker engine).
+5. **`bunker sync-package`** — **Ed25519-signed** bundles for USB/LAN site transfer (see [Core Bunker engine](docs/core-engine.md)).
+
+![Offline continuity dashboard (sample data)](docs/images/screenshot-dashboard.png)
+
+See also [Testing on an M365 Developer tenant](docs/real-tenant-test.md).
 
 ---
 
@@ -90,6 +94,7 @@ Use a dedicated app registration with admin consent; store secrets in environmen
 make init
 bunker keygen
 export BUNKER_GRAPH_ACCESS_TOKEN=...   # or app-only Graph env vars
+bunker doctor
 bunker continuity sync
 bunker continuity status
 bunker watch
@@ -110,9 +115,7 @@ docker compose -f docker-compose.continuity.yml --profile matrix up -d
 
 ---
 
-## Core Bunker engine (unchanged)
-
-Open-data ingest → DuckDB → Parquet → signed `bunker_sync_*` bundles: see `make ingest-all`, `make sync`, [CHANGELOG.md](CHANGELOG.md).
+The open-data ingest engine (DuckDB, signed sync bundles) is documented in [docs/core-engine.md](docs/core-engine.md).
 
 ---
 

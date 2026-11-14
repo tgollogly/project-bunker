@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "project-bunker"
-version = "0.3.2"
+version = "0.3.3"
 description = "Resilient, offline-first DuckDB and P2P data engine for Project Bunker"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -48,7 +48,7 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q --cov=bunker --cov-fail-under=85"
+addopts = "-q --cov=bunker --cov-fail-under=88"
 
 [tool.ruff]
 line-length = 100

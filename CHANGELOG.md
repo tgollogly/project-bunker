@@ -1,10 +1,18 @@
 # Changelog
 
-## Unreleased
+## [0.3.3] — 2026-11-14
 
-- Docs: added README hero banner and non-affiliation/trademark notice.
-- Docs: fix README hero banner layout (cloud/title spacing, connection path, shield shape).
-- Docs: replace generated hero with official `banner.png` artwork (1280×640); README references PNG.
+### Added
+
+- `bunker doctor` — checks `sources.yaml` / `continuity.yaml`, signing key permissions, encryption config, Graph env vars, probe hosts, and basic Graph reachability (PASS/FAIL lines).
+- `docs/real-tenant-test.md` — M365 Developer Program walkthrough.
+- `docs/core-engine.md` — open-data ingest / sync bundle engine (moved from README).
+- README screenshots from real `bunker serve` UI (sample data).
+
+### Changed
+
+- Test coverage floor raised to **88%** in CI; expanded tests for doctor and continuity paths.
+- README focused on Bunker Continuity; links to core-engine and tenant test docs.
 
 ## [0.3.2] — 2026-11-14
 
