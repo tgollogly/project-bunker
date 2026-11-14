@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{ title|default('Bunker Continuity') }}</title>
+  <style>
+    body{font-family:system-ui,sans-serif;margin:2rem;line-height:1.5}
+    nav a{margin-right:1rem}
+    table{border-collapse:collapse}
+    td,th{border:1px solid #ccc;padding:.4rem}
+    .stale{color:#a00}
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="/">Home</a>
+    <a href="/calendar">Calendar</a>
+    <a href="/contacts">Contacts</a>
+    <a href="/docs">Docs</a>
+    <a href="/status">Status</a>
+  </nav>
+  {% block body %}{% endblock %}
+</body>
+</html>

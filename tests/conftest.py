@@ -1,9 +1,17 @@
 from pathlib import Path
 
 import pytest
+from cryptography.fernet import Fernet
 
 from bunker.continuity.paths import ContinuityPaths
 from bunker.crypto.signing import KeyPair
+
+
+@pytest.fixture
+def bunker_data_key(monkeypatch: pytest.MonkeyPatch) -> str:
+    key = Fernet.generate_key().decode("ascii")
+    monkeypatch.setenv("BUNKER_DATA_KEY", key)
+    return key
 
 
 class FakeGraph:

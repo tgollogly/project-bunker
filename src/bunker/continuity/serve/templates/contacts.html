@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>Contacts</h1>
+<table>
+  <tr><th>Name</th><th>Email</th><th>Mobile</th></tr>
+  {% for row in rows %}
+  <tr>
+    <td>{{ row.name }}</td>
+    <td>{{ row.email }}</td>
+    <td>{{ row.mobile }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

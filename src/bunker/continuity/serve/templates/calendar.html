@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>Calendar (local cache)</h1>
+<table>
+  <tr><th>Subject</th><th>Start</th><th>End</th></tr>
+  {% for row in rows %}
+  <tr>
+    <td>{{ row.subject }}</td>
+    <td>{{ row.start }}</td>
+    <td>{{ row.end }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}
