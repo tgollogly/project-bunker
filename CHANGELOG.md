@@ -4,6 +4,7 @@
 
 - Docs: added README hero banner and non-affiliation/trademark notice.
 - Docs: fix README hero banner layout (cloud/title spacing, connection path, shield shape).
+- Docs: replace generated hero with official `banner.png` artwork (1280×640); README references PNG.
 
 ## [0.3.2] — 2026-11-14
 
