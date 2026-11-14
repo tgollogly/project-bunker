@@ -3,15 +3,15 @@ from __future__ import annotations
 
 import json
 import logging
+import shutil
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from bunker.continuity.encryption import encrypt_at_rest
 from bunker.continuity.meta import write_sync_meta
-from bunker.continuity.parquet_io import write_encrypted_parquet_rows
+from bunker.continuity.parquet_io import clear_encrypted_partition, replace_encrypted_partition_rows
 from bunker.continuity.paths import ContinuityPaths
 from bunker.continuity.storage import write_encrypted_file
-from bunker.ingest.parquet_writer import hive_part_path
 from bunker.io.atomic import atomic_write_bytes
 
 logger = logging.getLogger(__name__)
@@ -19,6 +19,8 @@ logger = logging.getLogger(__name__)
 SAMPLE_CONTACT_NAME = "Sam Sampleton"
 SAMPLE_CONTACT_EMAIL = "sam.sampleton@example.invalid"
 SAMPLE_RUNBOOK_FOLDER = "runbooks"
+RUNBOOK_TITLE = "Outage checklist"
+RUNBOOK_DESCRIPTION = "Offline steps when Microsoft 365 is unreachable (sample)."
 
 
 def _iso(dt: datetime) -> str:
@@ -31,6 +33,11 @@ def seed_sample_data(paths: ContinuityPaths) -> dict[str, Any]:
     Uses encryption when BUNKER_DATA_KEY is set (required if continuity.require_encryption).
     """
     paths.ensure()
+    clear_encrypted_partition(paths.parquet_root / "m365" / "calendar")
+    clear_encrypted_partition(paths.parquet_root / "m365" / "contacts")
+    runbook_dir = paths.docs_root / SAMPLE_RUNBOOK_FOLDER
+    if runbook_dir.is_dir():
+        shutil.rmtree(runbook_dir)
     now = datetime.now(timezone.utc)
 
     calendar_rows = [
@@ -53,8 +60,11 @@ def seed_sample_data(paths: ContinuityPaths) -> dict[str, Any]:
             "_bunker_ingested_at": now.isoformat(),
         },
     ]
-    cal_part = hive_part_path(paths.parquet_root / "m365" / "calendar")
-    write_encrypted_parquet_rows(calendar_rows, cal_part, continuity_root=paths.continuity_root)
+    replace_encrypted_partition_rows(
+        paths.parquet_root / "m365" / "calendar",
+        calendar_rows,
+        continuity_root=paths.continuity_root,
+    )
     write_sync_meta(
         paths.meta_root,
         "m365_calendar",
@@ -80,8 +90,11 @@ def seed_sample_data(paths: ContinuityPaths) -> dict[str, Any]:
             "_bunker_ingested_at": now.isoformat(),
         },
     ]
-    contacts_part = hive_part_path(paths.parquet_root / "m365" / "contacts")
-    write_encrypted_parquet_rows(contact_rows, contacts_part, continuity_root=paths.continuity_root)
+    replace_encrypted_partition_rows(
+        paths.parquet_root / "m365" / "contacts",
+        contact_rows,
+        continuity_root=paths.continuity_root,
+    )
     write_sync_meta(
         paths.meta_root,
         "m365_contacts",
@@ -109,6 +122,8 @@ def seed_sample_data(paths: ContinuityPaths) -> dict[str, Any]:
             {
                 "path": str(enc_path.relative_to(paths.continuity_root)),
                 "name": "outage-checklist.md",
+                "title": RUNBOOK_TITLE,
+                "description": RUNBOOK_DESCRIPTION,
                 "sha256": "sample-not-a-real-hash",
                 "bytes": len(runbook_plain),
             }

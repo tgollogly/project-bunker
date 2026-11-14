@@ -11,8 +11,10 @@
   --ok-bg: #1a3d2e;
   --warn: #d4a017;
   --warn-bg: #3d3418;
-  --down: #e05252;
-  --down-bg: #3d1c1c;
+  --down: #b42318;
+  --down-bg: #b42318;
+  --ok-banner: #1b6b45;
+  --warn-banner: #b8860b;
   --card: #152033;
   --focus: #5ee0c9;
   --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -148,52 +150,98 @@ input:focus-visible {
 }
 
 .status-banner {
+  width: 100%;
+  margin: 0;
   padding: 1rem 1.25rem;
-  border-bottom: 2px solid var(--border);
+  color: #fff;
+  border: none;
 }
 
 .status-banner__inner {
   max-width: 72rem;
   margin: 0 auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
 }
 
-.status-banner h2 {
-  margin: 0 0 0.25rem;
+.status-banner__icon {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.1rem;
+  line-height: 1;
+  margin-top: 0.1rem;
+}
+
+.status-banner--ok .status-banner__icon::before {
+  content: "✓";
+}
+
+.status-banner--degraded .status-banner__icon::before {
+  content: "!";
+}
+
+.status-banner--down .status-banner__icon::before {
+  content: "×";
+}
+
+.status-banner__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.status-banner__headline {
+  margin: 0 0 0.35rem;
   font-size: clamp(1.05rem, 2.5vw, 1.35rem);
   font-weight: 650;
+  color: #fff;
 }
 
-.status-banner p {
+.status-banner__meta {
   margin: 0;
   font-size: 0.9rem;
-  opacity: 0.92;
+  color: rgba(255, 255, 255, 0.92);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+  align-items: center;
+}
+
+.status-banner__incident {
+  font-weight: 600;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: help;
 }
 
 .status-banner--ok {
-  background: var(--ok-bg);
-  border-bottom-color: var(--ok);
-}
-
-.status-banner--ok h2 {
-  color: #7dffb8;
+  background: var(--ok-banner);
 }
 
 .status-banner--degraded {
-  background: var(--warn-bg);
-  border-bottom-color: var(--warn);
+  background: var(--warn-banner);
+  color: #1a1200;
 }
 
-.status-banner--degraded h2 {
-  color: #ffd666;
+.status-banner--degraded .status-banner__headline,
+.status-banner--degraded .status-banner__meta {
+  color: #1a1200;
+}
+
+.status-banner--degraded .status-banner__icon {
+  border-color: #1a1200;
+  color: #1a1200;
 }
 
 .status-banner--down {
   background: var(--down-bg);
-  border-bottom-color: var(--down);
-}
-
-.status-banner--down h2 {
-  color: #ff9b9b;
 }
 
 main {

@@ -10,7 +10,10 @@
   <tbody>
     {% for r in runbooks %}
     <tr>
-      <td>{{ r.name }}</td>
+      <td>
+        <strong>{{ r.title }}</strong>
+        {% if r.description %}<br><span class="muted">{{ r.description }}</span>{% endif %}
+      </td>
       <td><a href="{{ r.href }}">View</a></td>
     </tr>
     {% endfor %}

@@ -2,6 +2,9 @@
 {% block title %}Status — Bunker Continuity{% endblock %}
 {% block body %}
 <h1 class="page-title">Service status</h1>
+{% if latest_incident_id %}
+<p class="muted">Latest incident: <code title="Full incident id">{{ latest_incident_id }}</code></p>
+{% endif %}
 <h2 class="section-heading">Reachability probes</h2>
 {% if probes %}
 <ul class="probe-list" aria-label="Probe results">

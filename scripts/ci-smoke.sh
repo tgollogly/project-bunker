@@ -15,6 +15,7 @@ fi
 
 bunker keygen --force
 
+rm -rf data/continuity
 bash scripts/continuity-outage-demo.sh
 
 WATCH_JSON=$("$PYTHON" -c "
@@ -43,7 +44,8 @@ sleep 3
 
 curl -sf "http://127.0.0.1:${PORT}/" | tee /tmp/bunker-home.html
 grep -q 'DOWN' /tmp/bunker-home.html
-grep -q 'Sam Sampleton' /tmp/bunker-home.html
+SAM_COUNT=$(grep -o 'Sam Sampleton' /tmp/bunker-home.html | wc -l | tr -d ' ')
+test "$SAM_COUNT" -eq 1
 
 SYNC_DIR=$(bunker sync-package)
 bunker verify-sync "$SYNC_DIR"
