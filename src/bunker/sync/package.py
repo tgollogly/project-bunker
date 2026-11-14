@@ -6,6 +6,7 @@ from datetime import date
 from pathlib import Path
 
 from bunker.config import load_sources_config
+from bunker.continuity.parquet_io import ENCRYPTED_PARQUET_SUFFIX
 from bunker.continuity.paths import ContinuityPaths
 from bunker.crypto.signing import load_private_key
 from bunker.paths import BunkerPaths
@@ -21,7 +22,11 @@ def collect_parquet_files(parquet_root: Path, extra_roots: list[Path] | None = N
     for root in roots:
         if not root.is_dir():
             continue
-        for pattern in ("**/_current.parquet", "**/ingest_date=*/part-*.parquet"):
+        for pattern in (
+            "**/_current.parquet",
+            "**/ingest_date=*/part-*.parquet",
+            f"**/*{ENCRYPTED_PARQUET_SUFFIX}",
+        ):
             files.extend(sorted(root.glob(pattern)))
     return sorted(set(files))
 

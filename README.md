@@ -33,7 +33,7 @@ Bunker:
 1. **Snapshots** Graph data (calendar 14d, contacts, configured SharePoint folders) into **local Parquet + files**.
 2. **`bunker watch`** tracks reachability (Outlook/Teams URLs + optional Graph service health) with **OK / DEGRADED / DOWN** and hysteresis.
 3. On **DOWN**, writes a **local incident** and alerts **Matrix** (optional) + **SMS** (stub/Twilio) + **HMAC-signed LAN UDP**.
-4. **`bunker serve`** — offline FastAPI web UI on loopback (no CDN assets).
+4. **`bunker serve`** — offline FastAPI web UI on loopback (Jinja2 autoescape, no CDN). Use `bunker serve set-password` before binding to a LAN address.
 5. **`bunker sync-package`** — **Ed25519-signed** bundles for USB/LAN site transfer (existing Bunker engine).
 
 ---
@@ -71,7 +71,8 @@ Use a dedicated app registration with admin consent; store secrets in environmen
 |----------|---------|
 | `BUNKER_GRAPH_TENANT_ID`, `CLIENT_ID`, `CLIENT_SECRET` | App-only Graph |
 | `BUNKER_GRAPH_ACCESS_TOKEN` | Tests / delegated token (no MSAL) |
-| `BUNKER_DATA_KEY` | Fernet encrypt sync metadata at rest |
+| `BUNKER_DATA_KEY` | Fernet encrypt continuity Parquet/docs/meta (44-char key or passphrase + salt) |
+| `BUNKER_DATA_KEY_NEW` | New key for `bunker continuity rekey` |
 | `BUNKER_MATRIX_ACCESS_TOKEN`, `BUNKER_MATRIX_HOMESERVER` | Matrix alerts |
 | `BUNKER_MESH_KEY` | HMAC LAN UDP alerts (16+ bytes) |
 | Twilio suite | `BUNKER_TWILIO_*`, `BUNKER_SMS_TO` |
