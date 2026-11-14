@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Docs: added README hero banner and non-affiliation/trademark notice.
+
 ## [0.3.2] — 2026-11-14
 
 ### License

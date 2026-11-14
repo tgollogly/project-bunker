@@ -1,3 +1,13 @@
+<p align="center"><img src="docs/images/banner.svg" alt="Project Bunker: keep working when the cloud goes down. Free and open source, MIT License." width="100%"></p>
+
+# Project Bunker
+
+[![CI](https://github.com/tgollogly/project-bunker/actions/workflows/ci.yml/badge.svg)](https://github.com/tgollogly/project-bunker/actions/workflows/ci.yml)
+![Version](https://img.shields.io/badge/version-0.3.2-informational)
+![License](https://img.shields.io/badge/License-MIT-green.svg)
+
+_Project Bunker is an independent, free, open-source project. It is not affiliated with, endorsed by, or sponsored by Microsoft, The Bunker, Bunker Technical Solutions, or any other company. Microsoft 365, Outlook, Teams and SharePoint are trademarks of Microsoft Corporation._
+
 ```
  ██████╗ ██╗   ██╗███╗   ██╗██╗  ██╗███████╗██████╗
  ██╔══██╗██║   ██║████╗  ██║██║ ██╔╝██╔════╝██╔══██╗
@@ -7,12 +17,6 @@
  ╚═════╝  ╚═════╝ ╚═╝  ╚═══╝╚═╝  ╚═╝╚══════╝╚═════╝
    Bunker Continuity — when Microsoft 365 goes dark
 ```
-
-# Project Bunker
-
-[![CI](https://github.com/tgollogly/project-bunker/actions/workflows/ci.yml/badge.svg)](https://github.com/tgollogly/project-bunker/actions/workflows/ci.yml)
-![Version](https://img.shields.io/badge/version-0.3.2-informational)
-![License](https://img.shields.io/badge/License-MIT-green.svg)
 
 **Bunker Continuity** (built on Project Bunker v0.3) helps a **small organisation keep working** when **Microsoft 365** (Outlook, Teams, Exchange Online) is unavailable — as in the long global outage of **12–14 November 2026**.
 
@@ -119,6 +123,12 @@ make test
 make lint
 make typecheck
 ```
+
+---
+
+## Trademarks and affiliation
+
+Project Bunker is an independent, free, open-source project. It is not affiliated with, endorsed by, or sponsored by Microsoft, The Bunker, Bunker Technical Solutions, or any other company. Microsoft 365, Outlook, Teams and SharePoint are trademarks of Microsoft Corporation.
 
 ---
 
