@@ -1,5 +1,5 @@
 # Project Bunker — Copyright © 2026 Thomas Gollogly
-.PHONY: init ingest-demo ingest-all sync query status verify test lint mesh-listen mesh-alert docker-up
+.PHONY: init ingest-demo ingest-all sync query status verify test lint typecheck mesh-listen mesh-alert docker-up
 
 PYTHON ?= python3
 VENV ?= .venv
@@ -8,10 +8,21 @@ BIN := $(VENV)/bin
 init:
 	@bash scripts/init.sh
 
+test: init
+	@$(BIN)/pytest
+
+lint: init
+	@$(BIN)/ruff check .
+
+typecheck: init
+	@$(BIN)/mypy
+
 ingest-demo: init
+	@$(BIN)/bunker keygen --force 2>/dev/null || $(BIN)/bunker keygen
 	@$(BIN)/bunker ingest --source usgs_earthquakes_day
 
 ingest-all: init
+	@$(BIN)/bunker keygen 2>/dev/null || true
 	@$(BIN)/bunker ingest-all
 
 ingest-offline: init
@@ -28,13 +39,7 @@ status: init
 
 verify:
 	@test -n "$(SYNC)" || (echo "Usage: make verify SYNC=./bunker_sync_YYYY-MM-DD" && exit 1)
-	@$(BIN)/bunker verify-sync "$(SYNC)"
-
-test: init
-	@$(BIN)/pytest
-
-lint: init
-	@$(BIN)/ruff check src tests
+	@$(BIN)/bunker verify-sync "$(SYNC)" --public-key data/keys/signing.pub.pem
 
 mesh-listen:
 	@$(BIN)/python -m bunker.comms.udp_broadcast listen
@@ -48,3 +53,6 @@ docker-up:
 
 blackout:
 	@bash scripts/blackout-recovery.sh
+
+walkthrough:
+	@bash scripts/walkthrough-demo.sh
