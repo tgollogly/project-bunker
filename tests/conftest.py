@@ -2,6 +2,10 @@ import os
 from pathlib import Path
 
 import pytest
+from cryptography.fernet import Fernet
+
+from bunker.continuity.paths import ContinuityPaths
+from bunker.crypto.signing import KeyPair
 
 _BUNKER_ENV_EXACT = frozenset(
     {
@@ -21,10 +25,6 @@ def isolate_bunker_env(monkeypatch: pytest.MonkeyPatch) -> None:
     for key in list(os.environ):
         if key in _BUNKER_ENV_EXACT or key.startswith(_BUNKER_ENV_PREFIXES):
             monkeypatch.delenv(key, raising=False)
-from cryptography.fernet import Fernet
-
-from bunker.continuity.paths import ContinuityPaths
-from bunker.crypto.signing import KeyPair
 
 
 class FakeGraph:
