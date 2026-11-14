@@ -1,7 +1,6 @@
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
 from conftest import FakeGraph
 from conftest import continuity_paths as _paths
 from fastapi.testclient import TestClient
@@ -22,13 +21,13 @@ from bunker.continuity.watch.health import (
 from bunker.continuity.watch.run import watch_once
 
 
-def test_encryption_roundtrip(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("BUNKER_DATA_KEY", "a" * 32)
-    blob = encrypt_optional(b"secret")
-    assert decrypt_optional(blob) == b"secret"
+def test_encryption_roundtrip(tmp_path: Path, bunker_data_key: str) -> None:
+    paths = _paths(tmp_path)
+    blob = encrypt_optional(b"secret", continuity_root=paths.continuity_root)
+    assert decrypt_optional(blob, continuity_root=paths.continuity_root) == b"secret"
 
 
-def test_graph_calendar_and_contacts_sync(tmp_path: Path) -> None:
+def test_graph_calendar_and_contacts_sync(tmp_path: Path, bunker_data_key: str) -> None:
     paths = _paths(tmp_path)
     client = FakeGraph()
     sync_calendars(paths, client, user="me", horizon_days=7)
@@ -52,7 +51,8 @@ def test_watch_hysteresis_to_down(tmp_path: Path) -> None:
         prev = evaluate_watch(
             cfg,
             probe_results={"outlook": False},
-            graph_ok=None,
+            graph_reachable=None,
+            graph_service_unhealthy=False,
             prev=prev,
         )
     assert prev.state == HealthState.DOWN
@@ -85,9 +85,9 @@ def test_watch_once_records_incident_on_down(tmp_path: Path) -> None:
         notify.assert_called()
 
 
-def test_serve_offline_pages(tmp_path: Path) -> None:
+def test_serve_offline_pages(tmp_path: Path, bunker_data_key: str) -> None:
     paths = _paths(tmp_path)
-    write_sync_meta(paths.meta_root, "m365_calendar")
+    write_sync_meta(paths.meta_root, "m365_calendar", continuity_root=paths.continuity_root)
     app = create_app(paths, {"continuity": {"element_url": "http://local/element"}})
     client = TestClient(app)
     assert client.get("/").status_code == 200

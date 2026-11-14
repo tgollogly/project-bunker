@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>Bunker Continuity</h1>
+<p>M365 watch: <strong>{{ watch_state }}</strong></p>
+{% if element_url %}
+<p><a href="{{ element_url }}">Open backup chat (Element)</a></p>
+{% else %}
+<p class="stale">Backup chat link unavailable (invalid element_url).</p>
+{% endif %}
+<p>All assets are loaded locally — no CDN.</p>
+{% endblock %}

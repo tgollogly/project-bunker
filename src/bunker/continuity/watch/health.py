@@ -3,9 +3,10 @@ from __future__ import annotations
 import json
 import logging
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
+from typing import Any
 
 import httpx
 
@@ -14,10 +15,25 @@ from bunker.io.atomic import atomic_write_bytes
 
 logger = logging.getLogger(__name__)
 
+UNHEALTHY_SERVICE_STATUSES = frozenset(
+    {
+        "servicedegradation",
+        "serviceinterruption",
+        "extendedrecovery",
+        "investigating",
+        "restoringservice",
+    }
+)
+
 
 class HealthState(str, Enum):
     OK = "OK"
     DEGRADED = "DEGRADED"
+    DOWN = "DOWN"
+
+
+class ProbeState(str, Enum):
+    UP = "UP"
     DOWN = "DOWN"
 
 
@@ -27,6 +43,10 @@ class WatchConfig:
     degraded_after_failures: int = 2
     down_after_failures: int = 3
     recovery_after_successes: int = 2
+    watched_services: list[str] = field(
+        default_factory=lambda: ["Exchange Online", "Microsoft Teams"]
+    )
+    auth_probe_path: str | None = "/me/messages?$top=1"
 
 
 @dataclass
@@ -36,25 +56,76 @@ class WatchState:
     consecutive_successes: int = 0
     probes: dict[str, bool] | None = None
     updated_at: float = 0.0
+    graph_service_alert: bool = False
 
 
-def probe_url(url: str, timeout: float = 10.0) -> bool:
+def probe_url(url: str, timeout: float = 10.0) -> ProbeState:
     try:
         with httpx.Client(timeout=timeout, follow_redirects=True) as client:
             resp = client.get(url)
-            return resp.status_code < 500
+            if resp.status_code in (401, 403):
+                return ProbeState.UP
+            if resp.status_code >= 500:
+                return ProbeState.DOWN
+            return ProbeState.UP if resp.status_code < 500 else ProbeState.DOWN
     except (httpx.HTTPError, OSError):
-        return False
+        return ProbeState.DOWN
 
 
-def probe_graph_health(client: HttpxGraphClient | None) -> bool | None:
+def parse_health_overviews(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    value = payload.get("value")
+    if not isinstance(value, list):
+        return []
+    rows: list[dict[str, Any]] = []
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        rows.append(
+            {
+                "service": item.get("service"),
+                "status": item.get("status"),
+            }
+        )
+    return rows
+
+
+def unhealthy_watched_services(
+    overviews: list[dict[str, Any]],
+    watched: list[str],
+) -> list[str]:
+    watched_lower = {w.lower() for w in watched}
+    bad: list[str] = []
+    for row in overviews:
+        svc = str(row.get("service") or "")
+        status = str(row.get("status") or "").lower()
+        if svc.lower() in watched_lower and status in UNHEALTHY_SERVICE_STATUSES:
+            bad.append(svc)
+    return bad
+
+
+def probe_graph_health(
+    client: HttpxGraphClient | None,
+    *,
+    watched_services: list[str],
+) -> tuple[bool | None, bool, list[str]]:
+    """Returns (reachable, service_unhealthy_flag, unhealthy_service_names)."""
     if client is None:
-        return None
+        return None, False, []
     try:
-        client.get("/admin/serviceAnnouncement/healthOverviews")
-        return True
+        data = client.get("/admin/serviceAnnouncement/healthOverviews")
+        overviews = parse_health_overviews(data)
+        bad = unhealthy_watched_services(overviews, watched_services)
+        return True, bool(bad), bad
     except Exception:
-        return False
+        return False, False, []
+
+
+def probe_graph_auth_endpoint(client: HttpxGraphClient, path: str) -> ProbeState:
+    try:
+        client.get(path)
+        return ProbeState.UP
+    except Exception:
+        return ProbeState.DOWN
 
 
 def load_watch_state(path: Path) -> WatchState:
@@ -67,6 +138,7 @@ def load_watch_state(path: Path) -> WatchState:
         consecutive_successes=int(data.get("consecutive_successes", 0)),
         probes=data.get("probes"),
         updated_at=float(data.get("updated_at", 0)),
+        graph_service_alert=bool(data.get("graph_service_alert")),
     )
 
 
@@ -78,6 +150,7 @@ def save_watch_state(path: Path, state: WatchState) -> None:
         "consecutive_successes": state.consecutive_successes,
         "probes": state.probes,
         "updated_at": state.updated_at,
+        "graph_service_alert": state.graph_service_alert,
     }
     atomic_write_bytes(path, json.dumps(doc, indent=2).encode())
 
@@ -86,14 +159,16 @@ def evaluate_watch(
     cfg: WatchConfig,
     *,
     probe_results: dict[str, bool],
-    graph_ok: bool | None,
+    graph_reachable: bool | None,
+    graph_service_unhealthy: bool,
     prev: WatchState,
 ) -> WatchState:
-    failed = sum(1 for v in probe_results.values() if not v)
-    if graph_ok is False:
-        failed += 1
-    total = len(probe_results) + (1 if graph_ok is not None else 0)
-    success = failed == 0 and total > 0
+    signals: list[bool] = list(probe_results.values())
+    if graph_reachable is not None:
+        signals.append(graph_reachable)
+    if graph_service_unhealthy:
+        signals.append(False)
+    success = bool(signals) and all(signals)
 
     st = WatchState(
         state=prev.state,
@@ -101,14 +176,13 @@ def evaluate_watch(
         consecutive_successes=prev.consecutive_successes,
         probes=probe_results,
         updated_at=time.time(),
+        graph_service_alert=graph_service_unhealthy,
     )
 
     if success:
         st.consecutive_successes += 1
         st.consecutive_failures = 0
         if st.state != HealthState.OK and st.consecutive_successes >= cfg.recovery_after_successes:
-            st.state = HealthState.OK
-        elif st.consecutive_successes >= cfg.recovery_after_successes:
             st.state = HealthState.OK
     else:
         st.consecutive_failures += 1
@@ -133,9 +207,30 @@ def run_watch(
     else:
         probes = {}
         for ph in cfg.probe_hosts:
-            probes[ph["name"]] = probe_url(ph["url"])
-    graph_ok = probe_graph_health(graph_client)
+            probes[ph["name"]] = probe_url(ph["url"]) == ProbeState.UP
+    graph_reachable, graph_unhealthy, _ = probe_graph_health(
+        graph_client,
+        watched_services=cfg.watched_services,
+    )
+    if (
+        graph_client is not None
+        and cfg.auth_probe_path
+        and probe_override is None
+        and graph_reachable
+    ):
+        auth_ok = probe_graph_auth_endpoint(graph_client, cfg.auth_probe_path) == ProbeState.UP
+        if not auth_ok:
+            probes["graph_auth_probe"] = False
+        else:
+            probes["graph_auth_probe"] = True
+
     prev = load_watch_state(state_path)
-    new_state = evaluate_watch(cfg, probe_results=probes, graph_ok=graph_ok, prev=prev)
+    new_state = evaluate_watch(
+        cfg,
+        probe_results=probes,
+        graph_reachable=graph_reachable,
+        graph_service_unhealthy=graph_unhealthy,
+        prev=prev,
+    )
     save_watch_state(state_path, new_state)
     return new_state

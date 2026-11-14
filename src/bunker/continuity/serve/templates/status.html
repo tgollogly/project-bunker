@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>Sync status</h1>
+<p>Watch: {{ watch_state }}</p>
+<table>
+  <tr><th>Source</th><th>Last OK</th><th>Age (s)</th></tr>
+  {% for r in rows %}
+  <tr{% if r.stale %} class="stale"{% endif %}>
+    <td>{{ r.source_id }}</td>
+    <td>{{ r.last_success_iso }}</td>
+    <td>{{ r.age_seconds }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import base64
 import json
+import os
+import stat
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -11,6 +14,34 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
     Ed25519PrivateKey,
     Ed25519PublicKey,
 )
+
+_PRIVATE_MODE = 0o600
+
+
+def _chmod_private(path: Path) -> None:
+    try:
+        os.chmod(path, _PRIVATE_MODE)
+    except OSError:
+        pass
+    if sys.platform == "win32":
+        try:
+            import ctypes
+
+            attrs = ctypes.windll.kernel32.GetFileAttributesW(str(path))  # type: ignore[attr-defined]
+            if attrs != -1:
+                ctypes.windll.kernel32.SetFileAttributesW(str(path), attrs | 0x2)  # type: ignore[attr-defined]
+        except Exception:
+            pass
+
+
+def _assert_private_key_permissions(path: Path) -> None:
+    if sys.platform == "win32":
+        return
+    mode = path.stat().st_mode
+    if mode & (stat.S_IRGRP | stat.S_IROTH | stat.S_IWGRP | stat.S_IWOTH):
+        raise PermissionError(
+            f"Refusing to load private key {path}: permissions must be user-only (0600)"
+        )
 
 
 @dataclass
@@ -23,15 +54,27 @@ class KeyPair:
         private_key = Ed25519PrivateKey.generate()
         return cls(private_key=private_key, public_key=private_key.public_key())
 
-    def save(self, private_path: Path, public_path: Path) -> None:
+    def save(
+        self,
+        private_path: Path,
+        public_path: Path,
+        *,
+        passphrase: bytes | None = None,
+    ) -> None:
         private_path.parent.mkdir(parents=True, exist_ok=True)
+        enc = (
+            serialization.BestAvailableEncryption(passphrase)
+            if passphrase
+            else serialization.NoEncryption()
+        )
         private_path.write_bytes(
             self.private_key.private_bytes(
                 encoding=serialization.Encoding.PEM,
                 format=serialization.PrivateFormat.PKCS8,
-                encryption_algorithm=serialization.NoEncryption(),
+                encryption_algorithm=enc,
             )
         )
+        _chmod_private(private_path)
         public_path.write_bytes(
             self.public_key.public_bytes(
                 encoding=serialization.Encoding.PEM,
@@ -40,9 +83,11 @@ class KeyPair:
         )
 
 
-def load_private_key(path: Path) -> Ed25519PrivateKey:
+def load_private_key(path: Path, *, passphrase: bytes | None = None) -> Ed25519PrivateKey:
+    if not passphrase:
+        _assert_private_key_permissions(path)
     data = path.read_bytes()
-    key = serialization.load_pem_private_key(data, password=None)
+    key = serialization.load_pem_private_key(data, password=passphrase)
     if not isinstance(key, Ed25519PrivateKey):
         raise TypeError("Expected Ed25519 private key PEM")
     return key

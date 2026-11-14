@@ -2,22 +2,19 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any, Protocol
+from typing import Any
 
 import httpx
+
+from bunker.continuity.graph.auth import TokenProvider
 
 logger = logging.getLogger(__name__)
 
 GRAPH_BASE = "https://graph.microsoft.com/v1.0"
 
 
-class TokenProvider(Protocol):
-    def get_token(self) -> str:
-        """Return a valid Graph access token."""
-
-
 class HttpxGraphClient:
-    """Microsoft Graph client with Retry-After throttling support."""
+    """Microsoft Graph client with Retry-After throttling and single 401 refresh."""
 
     def __init__(
         self,
@@ -31,6 +28,16 @@ class HttpxGraphClient:
         self._max_retries = max_retries
 
     def request(self, method: str, path: str, **kwargs: Any) -> dict[str, Any]:
+        return self._request(method, path, allow_refresh=True, **kwargs)
+
+    def _request(
+        self,
+        method: str,
+        path: str,
+        *,
+        allow_refresh: bool,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
         url = path if path.startswith("http") else f"{GRAPH_BASE}{path}"
         headers = dict(kwargs.pop("headers", {}))
         headers["Authorization"] = f"Bearer {self._token_provider.get_token()}"
@@ -40,6 +47,11 @@ class HttpxGraphClient:
             try:
                 with httpx.Client(timeout=self._timeout) as client:
                     resp = client.request(method, url, headers=headers, **kwargs)
+                    if resp.status_code == 401 and allow_refresh:
+                        logger.warning("Graph 401 — refreshing token and retrying once")
+                        self._token_provider.invalidate_token()
+                        headers["Authorization"] = f"Bearer {self._token_provider.get_token()}"
+                        return self._request(method, path, allow_refresh=False, **kwargs)
                     if resp.status_code == 429:
                         retry = int(resp.headers.get("Retry-After", "2"))
                         logger.warning("Graph 429 — sleeping %ss", retry)
@@ -70,6 +82,10 @@ class HttpxGraphClient:
         headers = {"Authorization": f"Bearer {self._token_provider.get_token()}"}
         with httpx.Client(timeout=self._timeout) as client:
             resp = client.get(url, headers=headers)
+            if resp.status_code == 401:
+                self._token_provider.invalidate_token()
+                headers["Authorization"] = f"Bearer {self._token_provider.get_token()}"
+                resp = client.get(url, headers=headers)
             if resp.status_code == 429:
                 retry = int(resp.headers.get("Retry-After", "2"))
                 time.sleep(min(retry, 120))

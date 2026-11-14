@@ -1,9 +1,51 @@
 from pathlib import Path
 
 import pytest
+from cryptography.fernet import Fernet
 
 from bunker.continuity.paths import ContinuityPaths
 from bunker.crypto.signing import KeyPair
+
+
+class FakeGraph:
+    def get(self, path: str, **kwargs: object) -> dict:
+        if "calendarView" in path:
+            return {
+                "value": [
+                    {
+                        "id": "e1",
+                        "subject": "Stand-up",
+                        "start": {"dateTime": "2026-11-15T09:00:00"},
+                        "end": {"dateTime": "2026-11-15T09:30:00"},
+                        "organizer": {"emailAddress": {"name": "Team"}},
+                        "location": {"displayName": "Room A"},
+                    }
+                ]
+            }
+        if "contacts" in path:
+            return {
+                "value": [
+                    {"id": "c1", "displayName": "Alex", "emailAddresses": [{"address": "a@x.com"}]}
+                ]
+            }
+        return {"value": []}
+
+    def get_bytes(self, path: str) -> bytes:
+        return b"runbook"
+
+
+def continuity_paths(tmp_path: Path) -> ContinuityPaths:
+    return ContinuityPaths.from_config(
+        tmp_path,
+        {"continuity": {"data_root": "data/continuity"}},
+    )
+
+
+@pytest.fixture
+def bunker_data_key(monkeypatch: pytest.MonkeyPatch) -> str:
+    key = Fernet.generate_key().decode("ascii")
+    monkeypatch.setenv("BUNKER_DATA_KEY", key)
+    return key
 
 
 class FakeGraph:

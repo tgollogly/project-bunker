@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.3.1] — 2026-11-14
+
+### Security (Bunker Continuity)
+
+- Offline UI: Jinja2 autoescape, http(s)-only `element_url`, CSP / `X-Content-Type-Options` / `Referrer-Policy`.
+- Encrypt calendar/contact Parquet (`.parquet.enc`), documents, manifests, and deltas; scrypt passphrase + salt; `require_encryption`; `bunker continuity rekey`.
+- MSAL token refresh with expiry margin; Graph 401 refresh-and-retry once.
+- Parse M365 service health overviews; smarter HTTP probes; optional authenticated Graph probe; fix redundant watch recovery branch.
+- `bunker serve set-password`, session cookies off loopback, TLS flags, login rate limit.
+- Signing private keys: `0600` permissions, optional passphrase, POSIX permission check on load.
+
 ## [0.3.0] — 2026-11-14
 
 ### Bunker Continuity (Microsoft 365 outage kit)

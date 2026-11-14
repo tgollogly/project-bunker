@@ -15,7 +15,7 @@ from bunker.continuity.notify.matrix import send_matrix_message
 from bunker.continuity.notify.outage import notify_outage
 from bunker.continuity.serve.app import create_app
 from bunker.continuity.sync_all import run_continuity_sync
-from bunker.continuity.watch.health import WatchConfig, probe_url, run_watch
+from bunker.continuity.watch.health import ProbeState, WatchConfig, probe_url, run_watch
 
 
 def test_config_env_expand(tmp_path: Path) -> None:
@@ -60,7 +60,7 @@ def test_graph_client_retry_after() -> None:
         assert calls["n"] >= 2
 
 
-def test_sync_documents_manifest(tmp_path: Path) -> None:
+def test_sync_documents_manifest(tmp_path: Path, bunker_data_key: str) -> None:
     paths = _paths(tmp_path)
     client = FakeGraph()
     client.get = lambda path, **kwargs: {  # type: ignore[method-assign]
@@ -77,7 +77,7 @@ def test_sync_documents_manifest(tmp_path: Path) -> None:
     assert (paths.manifest_root / "runbooks.json").is_file()
 
 
-def test_run_continuity_sync_mocked(tmp_path: Path) -> None:
+def test_run_continuity_sync_mocked(tmp_path: Path, bunker_data_key: str) -> None:
     paths = _paths(tmp_path)
     cfg = {
         "continuity": {
@@ -120,22 +120,22 @@ def test_notify_outage_stub_sms() -> None:
         notify_outage(cfg, WatchState(state=HealthState.DOWN, probes={"a": False}))
 
 
-def test_meta_encryption_roundtrip(tmp_path: Path, monkeypatch) -> None:
-    monkeypatch.setenv("BUNKER_DATA_KEY", "b" * 32)
+def test_meta_encryption_roundtrip(tmp_path: Path, bunker_data_key: str) -> None:
     paths = _paths(tmp_path)
-    write_sync_meta(paths.meta_root, "test_src", {"n": 1})
-    doc = read_sync_meta(paths.meta_root, "test_src")
+    write_sync_meta(paths.meta_root, "test_src", {"n": 1}, continuity_root=paths.continuity_root)
+    doc = read_sync_meta(paths.meta_root, "test_src", continuity_root=paths.continuity_root)
     assert doc and doc["source_id"] == "test_src"
 
 
-def test_serve_calendar_with_data(tmp_path: Path) -> None:
+def test_serve_calendar_with_data(tmp_path: Path, bunker_data_key: str) -> None:
     paths = _paths(tmp_path)
-    from bunker.ingest.parquet_writer import write_rows_parquet_duckdb
+    from bunker.continuity.parquet_io import write_encrypted_parquet_rows
 
     part = paths.parquet_root / "m365/calendar/ingest_date=2026-11-14/part-x.parquet"
-    write_rows_parquet_duckdb(
+    write_encrypted_parquet_rows(
         [{"subject": "A", "start": "t1", "end": "t2", "location": "L", "_bunker_ingested_at": "t"}],
         part,
+        continuity_root=paths.continuity_root,
     )
     app = create_app(paths, {"continuity": {}})
     html = TestClient(app).get("/calendar").text
@@ -146,7 +146,7 @@ def test_probe_url_success() -> None:
     with patch("httpx.Client") as mock_client:
         inst = mock_client.return_value.__enter__.return_value
         inst.get.return_value = MagicMock(status_code=200)
-        assert probe_url("https://example.com") is True
+        assert probe_url("https://example.com") == ProbeState.UP
 
 
 def test_run_watch_ok(tmp_path: Path) -> None:

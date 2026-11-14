@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import os
+import time
 from dataclasses import dataclass, field
-from typing import Any, cast
+from typing import Any, Protocol, cast
+
+_REFRESH_MARGIN_SEC = 300
 
 
 @dataclass
@@ -26,31 +29,68 @@ class GraphAuthSettings:
         return cls(tenant_id=tenant, client_id=client_id, client_secret=secret, scopes=scopes)
 
 
-class MsalTokenProvider:
-    """App-only client credentials when client secret is set."""
+class Clock(Protocol):
+    def __call__(self) -> float:
+        """Return current Unix timestamp."""
 
-    def __init__(self, settings: GraphAuthSettings) -> None:
+
+class TokenProvider(Protocol):
+    def get_token(self) -> str:
+        """Return a valid Graph access token."""
+
+    def invalidate_token(self) -> None:
+        """Drop cached token so the next get_token() refreshes."""
+
+
+class MsalTokenProvider:
+    """App-only client credentials with MSAL cache and expiry-aware refresh."""
+
+    def __init__(
+        self,
+        settings: GraphAuthSettings,
+        *,
+        clock: Clock | None = None,
+    ) -> None:
         if not settings.client_secret:
             raise ValueError("BUNKER_GRAPH_CLIENT_SECRET required for app-only auth")
         self._settings = settings
+        self._clock: Clock = clock or time.time
         self._token: str | None = None
-
-    def get_token(self) -> str:
-        if self._token:
-            return self._token
+        self._expires_at: float = 0.0
         import msal
 
-        app = msal.ConfidentialClientApplication(
+        self._app = msal.ConfidentialClientApplication(
             self._settings.client_id,
             authority=f"https://login.microsoftonline.com/{self._settings.tenant_id}",
             client_credential=self._settings.client_secret,
         )
-        result: dict[str, Any] = app.acquire_token_for_client(scopes=self._settings.scopes)
+
+    def invalidate_token(self) -> None:
+        self._token = None
+        self._expires_at = 0.0
+
+    def _acquire(self) -> str:
+        result: dict[str, Any] | None = self._app.acquire_token_silent(
+            self._settings.scopes,
+            account=None,
+        )
+        if not result:
+            result = cast(
+                dict[str, Any],
+                self._app.acquire_token_for_client(scopes=self._settings.scopes),
+            )
         token = result.get("access_token")
         if not token:
             raise RuntimeError(f"MSAL token error: {result.get('error_description', result)}")
-        self._token = token
-        return cast(str, token)
+        expires_in = int(result.get("expires_in", 3600))
+        self._token = cast(str, token)
+        self._expires_at = self._clock() + max(expires_in - _REFRESH_MARGIN_SEC, 60)
+        return self._token
+
+    def get_token(self) -> str:
+        if self._token and self._clock() < self._expires_at:
+            return self._token
+        return self._acquire()
 
 
 class StaticTokenProvider:
@@ -61,6 +101,9 @@ class StaticTokenProvider:
 
     def get_token(self) -> str:
         return self._token
+
+    def invalidate_token(self) -> None:
+        return None
 
 
 def build_token_provider() -> MsalTokenProvider | StaticTokenProvider:

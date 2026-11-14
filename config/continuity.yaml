@@ -3,6 +3,7 @@
 
 continuity:
   data_root: data/continuity
+  require_encryption: true
   calendar_horizon_days: 14
   retention_days: 90
 
@@ -21,6 +22,10 @@ continuity:
       description: "Incident runbooks"
 
   watch:
+    watched_services:
+      - "Exchange Online"
+      - "Microsoft Teams"
+    auth_probe_path: "/me/messages?$top=1"
     probe_hosts:
       - name: outlook
         url: https://outlook.office365.com/owa/

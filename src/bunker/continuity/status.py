@@ -17,7 +17,7 @@ def continuity_status(paths: ContinuityPaths) -> list[dict[str, Any]]:
         if meta_file.name == "watch_state.json" or meta_file.name.endswith(".delta.json"):
             continue
         source_id = meta_file.stem
-        doc = read_sync_meta(paths.meta_root, source_id)
+        doc = read_sync_meta(paths.meta_root, source_id, continuity_root=paths.continuity_root)
         if not doc:
             continue
         age = now - float(doc.get("last_success_at", now))
