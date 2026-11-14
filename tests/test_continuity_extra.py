@@ -18,17 +18,23 @@ def test_msal_token_provider() -> None:
         scopes=["https://graph.microsoft.com/.default"],
     )
     with patch("msal.ConfidentialClientApplication") as app_cls:
-        app_cls.return_value.acquire_token_for_client.return_value = {"access_token": "tok"}
+        app_cls.return_value.acquire_token_silent.return_value = None
+        app_cls.return_value.acquire_token_for_client.return_value = {
+            "access_token": "tok",
+            "expires_in": 3600,
+        }
         prov = MsalTokenProvider(settings)
         assert prov.get_token() == "tok"
 
 
 def test_probe_graph_health() -> None:
     client = MagicMock()
-    client.get.return_value = {}
-    assert probe_graph_health(client) is True
+    client.get.return_value = {"value": []}
+    reachable, unhealthy, bad = probe_graph_health(client, watched_services=["Exchange Online"])
+    assert reachable is True and unhealthy is False
     client.get.side_effect = RuntimeError("x")
-    assert probe_graph_health(client) is False
+    reachable2, _, _ = probe_graph_health(client, watched_services=[])
+    assert reachable2 is False
 
 
 def test_twilio_sms_mocked() -> None:
@@ -57,14 +63,19 @@ def test_build_twilio_provider_env() -> None:
         assert isinstance(p, TwilioSmsProvider)
 
 
-def test_serve_contacts_and_docs(tmp_path) -> None:
+def test_serve_contacts_and_docs(tmp_path, bunker_data_key) -> None:
     paths = continuity_paths(tmp_path)
-    (paths.docs_root / "runbooks").mkdir(parents=True)
-    (paths.docs_root / "runbooks" / "r.txt").write_text("doc", encoding="utf-8")
+    from bunker.continuity.storage import write_encrypted_file
+
+    write_encrypted_file(
+        paths.docs_root / "runbooks" / "r.txt",
+        b"doc",
+        continuity_root=paths.continuity_root,
+    )
     app = create_app(paths, {"continuity": {}})
     c = TestClient(app)
     assert "Contacts" in c.get("/contacts").text
-    assert "r.txt" in c.get("/docs").text
+    assert "r.txt.enc" in c.get("/docs").text
 
 
 def test_graph_get_bytes() -> None:
