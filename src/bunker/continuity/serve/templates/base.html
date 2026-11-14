@@ -2,23 +2,40 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>{{ title|default('Bunker Continuity') }}</title>
-  <style>
-    body{font-family:system-ui,sans-serif;margin:2rem;line-height:1.5}
-    nav a{margin-right:1rem}
-    table{border-collapse:collapse}
-    td,th{border:1px solid #ccc;padding:.4rem}
-    .stale{color:#a00}
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>{% block title %}Bunker Continuity{% endblock %}</title>
+  <link rel="stylesheet" href="/static/continuity.css">
 </head>
 <body>
-  <nav>
-    <a href="/">Home</a>
-    <a href="/calendar">Calendar</a>
-    <a href="/contacts">Contacts</a>
-    <a href="/docs">Docs</a>
-    <a href="/status">Status</a>
-  </nav>
-  {% block body %}{% endblock %}
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="site-header__inner">
+      <div class="brand-row">
+        <p class="brand"><span>Bunker</span> Continuity</p>
+        {% if sample_data %}
+        <span class="sample-ribbon" title="Fictional demo data only">Sample data</span>
+        {% endif %}
+      </div>
+      <nav aria-label="Main">
+        <ul class="nav-tabs">
+          <li><a href="/" class="{% if active_nav == 'home' %}is-active{% endif %}">Home</a></li>
+          <li><a href="/calendar" class="{% if active_nav == 'calendar' %}is-active{% endif %}">Calendar</a></li>
+          <li><a href="/contacts" class="{% if active_nav == 'contacts' %}is-active{% endif %}">Contacts</a></li>
+          <li><a href="/runbooks" class="{% if active_nav == 'runbooks' %}is-active{% endif %}">Runbooks</a></li>
+          <li><a href="/status" class="{% if active_nav == 'status' %}is-active{% endif %}">Status</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+  <p class="status-banner {{ banner_class }}" role="status">
+    <span class="status-banner__inner">
+      <h2>{{ headline }}</h2>
+      <p>{{ subline }}</p>
+    </span>
+  </p>
+  <main id="main">
+    {% block body %}{% endblock %}
+  </main>
 </body>
 </html>

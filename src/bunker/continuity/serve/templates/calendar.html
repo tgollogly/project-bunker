@@ -1,14 +1,24 @@
 {% extends "base.html" %}
+{% block title %}Calendar — Bunker Continuity{% endblock %}
 {% block body %}
-<h1>Calendar (local cache)</h1>
-<table>
-  <tr><th>Subject</th><th>Start</th><th>End</th></tr>
-  {% for row in rows %}
-  <tr>
-    <td>{{ row.subject }}</td>
-    <td>{{ row.start }}</td>
-    <td>{{ row.end }}</td>
-  </tr>
-  {% endfor %}
+<h1 class="page-title">Cached calendar</h1>
+{% if rows %}
+<table class="data-table">
+  <thead>
+    <tr><th scope="col">Start</th><th scope="col">End</th><th scope="col">Subject</th><th scope="col">Location</th></tr>
+  </thead>
+  <tbody>
+    {% for r in rows %}
+    <tr>
+      <td>{{ r.start }}</td>
+      <td>{{ r.end }}</td>
+      <td>{{ r.subject }}</td>
+      <td>{{ r.location }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
 </table>
+{% else %}
+<p class="muted">No calendar events in offline cache.</p>
+{% endif %}
 {% endblock %}

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any
 
 from bunker.continuity.notify.matrix import send_matrix_message
@@ -17,14 +18,17 @@ def notify_outage(cfg: dict[str, Any], watch: WatchState) -> None:
         f"⚠ Bunker Continuity: Microsoft 365 status {watch.state.value}. "
         "Switch to offline bunker serve and local calendar/contacts."
     )
-    try:
-        send_matrix_message(
-            homeserver=matrix_cfg.get("homeserver", ""),
-            room_alias=matrix_cfg.get("room_alias", "#outage:local"),
-            message=message,
-        )
-    except Exception as exc:
-        logger.error("Matrix notify failed: %s", exc)
+    if not os.environ.get("BUNKER_MATRIX_ACCESS_TOKEN", "").strip():
+        logger.info("Matrix not configured — skipping")
+    else:
+        try:
+            send_matrix_message(
+                homeserver=matrix_cfg.get("homeserver", ""),
+                room_alias=matrix_cfg.get("room_alias", "#outage:local"),
+                message=message,
+            )
+        except Exception as exc:
+            logger.warning("Matrix notify failed: %s", exc)
 
     sms_cfg = cont.get("sms", {})
     try:

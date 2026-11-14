@@ -1,14 +1,29 @@
 {% extends "base.html" %}
+{% block title %}Contacts — Bunker Continuity{% endblock %}
 {% block body %}
-<h1>Contacts</h1>
-<table>
-  <tr><th>Name</th><th>Email</th><th>Mobile</th></tr>
-  {% for row in rows %}
-  <tr>
-    <td>{{ row.name }}</td>
-    <td>{{ row.email }}</td>
-    <td>{{ row.mobile }}</td>
-  </tr>
-  {% endfor %}
+<h1 class="page-title">Cached contacts</h1>
+<form class="search-bar" method="get" action="/contacts" role="search">
+  <label for="q" class="muted">Search</label>
+  <input type="search" id="q" name="q" value="{{ search_q }}" placeholder="Name or email" autocomplete="off">
+  <button type="submit">Filter</button>
+</form>
+{% if rows %}
+<table class="data-table">
+  <thead>
+    <tr><th scope="col">Name</th><th scope="col">Role</th><th scope="col">Phone</th><th scope="col">Email</th></tr>
+  </thead>
+  <tbody>
+    {% for r in rows %}
+    <tr>
+      <td>{{ r.name }}</td>
+      <td>{{ r.role }}</td>
+      <td>{% if r.mobile %}<a href="tel:{{ r.mobile | replace(' ', '') }}">{{ r.mobile }}</a>{% else %}—{% endif %}</td>
+      <td>{% if r.email %}<a href="mailto:{{ r.email }}">{{ r.email }}</a>{% else %}—{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
 </table>
+{% else %}
+<p class="muted">No contacts match{% if search_q %} &ldquo;{{ search_q }}&rdquo;{% endif %}.</p>
+{% endif %}
 {% endblock %}

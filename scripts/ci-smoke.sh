@@ -48,4 +48,7 @@ grep -q 'Sam Sampleton' /tmp/bunker-home.html
 SYNC_DIR=$(bunker sync-package)
 bunker verify-sync "$SYNC_DIR"
 
+echo "=== pytest with BUNKER_DATA_KEY still exported (README quick-start isolation) ==="
+pytest -q
+
 echo "smoke OK"

@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DOCS = ROOT / "docs" / "images"
 
 
-def _seed() -> None:
+def _seed_and_outage() -> None:
     os.chdir(ROOT)
     os.environ.setdefault("BUNKER_MESH_KEY", "sixteen-byte-key!!")
     os.environ.setdefault(
@@ -40,8 +40,10 @@ paths = ContinuityPaths.from_config(root, cfg)
 for i in range(3):
     out = watch_once(paths, cfg, probe_override={'outlook': False, 'teams': False})
     print(json.dumps(out))
+assert out.get('state') == 'DOWN'
 """,
         ],
+        env=os.environ,
     )
 
 
@@ -53,7 +55,13 @@ def main() -> None:
         subprocess.check_call([sys.executable, "-m", "playwright", "install", "chromium"])
         from playwright.sync_api import sync_playwright
 
-    _seed()
+    if not (ROOT / "data" / "keys" / "signing.pem").is_file():
+        subprocess.check_call(
+            [sys.executable, "-m", "bunker.cli", "keygen", "--force"],
+            env=os.environ,
+        )
+
+    _seed_and_outage()
     DOCS.mkdir(parents=True, exist_ok=True)
     proc = subprocess.Popen(
         [sys.executable, "-m", "bunker.cli", "serve", "--port", "18765"],
@@ -68,14 +76,17 @@ def main() -> None:
         base = "http://127.0.0.1:18765"
         with sync_playwright() as p:
             browser = p.chromium.launch()
-            page = browser.new_page(viewport={"width": 1280, "height": 900})
-            page.goto(f"{base}/status", wait_until="networkidle")
-            page.screenshot(path=str(DOCS / "screenshot-dashboard.png"), full_page=True)
+            desktop = browser.new_page(viewport={"width": 1280, "height": 800})
+            desktop.goto(f"{base}/", wait_until="networkidle")
+            desktop.screenshot(path=str(DOCS / "screenshot-dashboard.png"))
+            mobile = browser.new_page(viewport={"width": 390, "height": 844})
+            mobile.goto(f"{base}/", wait_until="networkidle")
+            mobile.screenshot(path=str(DOCS / "screenshot-mobile.png"))
             browser.close()
     finally:
         proc.terminate()
         proc.wait(timeout=10)
-    print(f"Wrote {DOCS / 'screenshot-dashboard.png'}")
+    print(f"Wrote {DOCS / 'screenshot-dashboard.png'} and {DOCS / 'screenshot-mobile.png'}")
 
 
 if __name__ == "__main__":
