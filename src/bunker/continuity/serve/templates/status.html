@@ -1,15 +1,39 @@
 {% extends "base.html" %}
+{% block title %}Status — Bunker Continuity{% endblock %}
 {% block body %}
-<h1>Sync status</h1>
-<p>Watch: {{ watch_state }}</p>
-<table>
-  <tr><th>Source</th><th>Last OK</th><th>Age (s)</th></tr>
-  {% for r in rows %}
-  <tr{% if r.stale %} class="stale"{% endif %}>
-    <td>{{ r.source_id }}</td>
-    <td>{{ r.last_success_iso }}</td>
-    <td>{{ r.age_seconds }}</td>
-  </tr>
+<h1 class="page-title">Service status</h1>
+<h2 class="section-heading">Reachability probes</h2>
+{% if probes %}
+<ul class="probe-list" aria-label="Probe results">
+  {% for p in probes %}
+  <li>
+    <span class="dot {% if p.up %}dot--up{% else %}dot--down{% endif %}" aria-hidden="true"></span>
+    {{ p.name }}
+    <span class="muted">{% if p.up %}reachable{% else %}unreachable{% endif %}</span>
+  </li>
   {% endfor %}
+</ul>
+{% else %}
+<p class="muted">No probe results yet — run <code>bunker watch</code>.</p>
+{% endif %}
+<h2 class="section-heading section-heading--spaced">Cached data sources</h2>
+{% if sync_rows %}
+<table class="data-table">
+  <thead>
+    <tr><th scope="col">Source</th><th scope="col">Last OK (UTC)</th><th scope="col">Age</th><th scope="col">Freshness</th></tr>
+  </thead>
+  <tbody>
+    {% for r in sync_rows %}
+    <tr{% if r.stale %} class="stale"{% endif %}>
+      <td>{{ r.source_id }}</td>
+      <td>{{ r.last_success_iso }}</td>
+      <td>{{ r.age_seconds }}s</td>
+      <td>{% if r.stale %}Stale{% else %}Fresh{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
 </table>
+{% else %}
+<p class="muted">Sync table empty — seed or sync continuity data first.</p>
+{% endif %}
 {% endblock %}

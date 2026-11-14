@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Runbooks — Bunker Continuity{% endblock %}
+{% block body %}
+<h1 class="page-title">Offline runbooks</h1>
+{% if runbooks %}
+<table class="data-table">
+  <thead>
+    <tr><th scope="col">Document</th><th scope="col">Open</th></tr>
+  </thead>
+  <tbody>
+    {% for r in runbooks %}
+    <tr>
+      <td>{{ r.name }}</td>
+      <td><a href="{{ r.href }}">View</a></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="muted">No runbooks in cache.</p>
+{% endif %}
+{% endblock %}

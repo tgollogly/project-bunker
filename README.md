@@ -40,8 +40,6 @@ Bunker:
 4. **`bunker serve`** — offline FastAPI web UI on loopback (Jinja2 autoescape, no CDN). Use `bunker serve set-password` before binding to a LAN address.
 5. **`bunker sync-package`** — **Ed25519-signed** bundles for USB/LAN site transfer (see [Core Bunker engine](docs/core-engine.md)).
 
-![Offline continuity dashboard (sample data)](docs/images/screenshot-dashboard.png)
-
 See also [Testing on an M365 Developer tenant](docs/real-tenant-test.md).
 
 ---
@@ -112,6 +110,14 @@ bunker continuity status         # should list m365_calendar, contacts, docs
 bash scripts/continuity-outage-demo.sh
 bunker serve --port 8765           # open http://127.0.0.1:8765 — watch DOWN + Sam Sampleton
 ```
+
+### What it looks like
+
+*(sample data, simulated outage)*
+
+| Desktop (1280×800) | Mobile (390×844) |
+|-------------------|------------------|
+| ![Bunker Continuity dashboard](docs/images/screenshot-dashboard.png) | ![Bunker Continuity mobile](docs/images/screenshot-mobile.png) |
 
 **Outage demo (simulated probes):**
 

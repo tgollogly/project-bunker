@@ -75,7 +75,9 @@ def test_serve_contacts_and_docs(tmp_path, bunker_data_key) -> None:
     app = create_app(paths, {"continuity": {}})
     c = TestClient(app)
     assert "Contacts" in c.get("/contacts").text
-    assert "r.txt.enc" in c.get("/docs").text
+    runbooks = c.get("/runbooks", follow_redirects=True)
+    assert runbooks.status_code == 200
+    assert "r.txt" in runbooks.text
 
 
 def test_graph_get_bytes() -> None:

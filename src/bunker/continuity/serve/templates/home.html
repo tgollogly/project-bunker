@@ -1,14 +1,74 @@
 {% extends "base.html" %}
+{% block title %}Dashboard — Bunker Continuity{% endblock %}
 {% block body %}
-<h1>Bunker Continuity</h1>
-<p>M365 watch: <strong>{{ watch_state }}</strong></p>
-{% if featured_contact %}
-<p>Offline roster includes <strong>{{ featured_contact }}</strong> (cached contacts).</p>
-{% endif %}
+<h1 class="page-title">Office dashboard</h1>
+<div class="grid-dashboard">
+  <section class="card" aria-labelledby="meetings-heading">
+    <h3 id="meetings-heading">Today&apos;s meetings</h3>
+    {% if meetings %}
+    <ul>
+      {% for m in meetings %}
+      <li>
+        <span class="meeting-time">{{ m.time_label }}</span>
+        <strong>{{ m.subject }}</strong>
+        <span class="muted"> · {{ m.location }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="muted">No meetings in cache.</p>
+    {% endif %}
+  </section>
+  <section class="card" aria-labelledby="contacts-heading">
+    <h3 id="contacts-heading">Key contacts</h3>
+    {% if contacts %}
+    <ul>
+      {% for c in contacts %}
+      <li>
+        <strong>{{ c.name }}</strong>
+        <span class="muted"> · {{ c.role }}</span>
+        {% if c.mobile %}
+        <br><a href="tel:{{ c.mobile | replace(' ', '') }}">{{ c.mobile }}</a>
+        {% endif %}
+        {% if c.email %}
+        <br><a href="mailto:{{ c.email }}">{{ c.email }}</a>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="muted">No contacts in cache.</p>
+    {% endif %}
+  </section>
+  <section class="card" aria-labelledby="runbooks-heading">
+    <h3 id="runbooks-heading">Runbooks</h3>
+    {% if runbooks %}
+    <ul>
+      {% for r in runbooks %}
+      <li><a href="{{ r.href }}">{{ r.name }}</a></li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="muted">No runbooks synced.</p>
+    {% endif %}
+  </section>
+  <section class="card" aria-labelledby="fresh-heading">
+    <h3 id="fresh-heading">Data freshness</h3>
+  {% if freshness %}
+    <ul>
+      {% for f in freshness %}
+      <li class="{% if f.stale %}stale{% endif %}">
+        <strong>{{ f.source_id }}</strong>
+        <span class="muted"> · {{ f.ago_label }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="muted">No sync metadata yet — run <code>bunker continuity sync</code> or <code>seed-sample</code>.</p>
+    {% endif %}
+  </section>
+</div>
 {% if element_url %}
-<p><a href="{{ element_url }}">Open backup chat (Element)</a></p>
-{% else %}
-<p class="stale">Backup chat link unavailable (invalid element_url).</p>
+<p class="chat-link"><a href="{{ element_url }}">Open backup chat (Element)</a> — works when Matrix is up.</p>
 {% endif %}
-<p>All assets are loaded locally — no CDN.</p>
 {% endblock %}

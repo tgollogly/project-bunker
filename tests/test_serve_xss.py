@@ -71,4 +71,5 @@ def test_element_url_only_http_https(tmp_path, bunker_data_key) -> None:
     client = TestClient(app)
     html = client.get("/").text
     assert "file://" not in html
-    assert "backup chat" in html.lower() or "Element" in html
+    assert "file://" not in html
+    assert "Open backup chat" not in html
