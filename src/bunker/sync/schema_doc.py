@@ -44,11 +44,11 @@ def build_schema_json(parquet_files: list[Path], out_path: Path) -> dict[str, An
     finally:
         con.close()
 
-    doc: dict[str, Any] = {
+    schema_doc: dict[str, Any] = {
         "version": 1,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "engine": "duckdb",
         "datasets": datasets,
     }
-    out_path.write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
-    return doc
+    out_path.write_text(json.dumps(schema_doc, indent=2) + "\n", encoding="utf-8")
+    return schema_doc

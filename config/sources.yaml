@@ -11,6 +11,8 @@ sources:
     name: USGS Earthquake Feed (past day)
     url: https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson
     format: geojson
+    parser: usgs_earthquakes_day
+    primary_key: _feature_id
     attribution: "Data courtesy of the U.S. Geological Survey"
     license_note: "USGS products are in the public domain; cite USGS as source."
     min_fetch_interval_seconds: 60
@@ -21,6 +23,8 @@ sources:
     name: Open-Meteo forecast sample (London)
     url: https://api.open-meteo.com/v1/forecast?latitude=51.5072&longitude=-0.1276&hourly=temperature_2m&forecast_days=1
     format: json
+    parser: open_meteo_demo
+    primary_key: time
     attribution: "Weather data by Open-Meteo.com"
     license_note: "Open-Meteo API — see https://open-meteo.com/en/terms"
     min_fetch_interval_seconds: 300

@@ -5,175 +5,129 @@
  ██╔══██╗██║   ██║██║╚██╗██║██╔═██╗ ██╔══╝  ██╔══██╗
  ██████╔╝╚██████╔╝██║ ╚████║██║  ██╗███████╗██████╔╝
  ╚═════╝  ╚═════╝ ╚═╝  ╚═══╝╚═╝  ╚═╝╚══════╝╚═════╝
-        Offline-First DuckDB · Parquet · P2P Sync
+     Local ingest · DuckDB · Parquet · signed bundles
 ```
 
 # Project Bunker
 
 [![CI](https://github.com/tgollogly/project-bunker/actions/workflows/ci.yml/badge.svg)](https://github.com/tgollogly/project-bunker/actions/workflows/ci.yml)
+![Version](https://img.shields.io/badge/version-0.2.0-informational)
 ![License](https://img.shields.io/badge/License-Thomas%20Gollogly-blue)
-![Offline Ready](https://img.shields.io/badge/Offline-Ready-success)
-![DuckDB](https://img.shields.io/badge/DuckDB-1.x+-yellow)
+![DuckDB](https://img.shields.io/badge/DuckDB-embedded-yellow)
 
-**Project Bunker** is a zero-cloud-core data engine: ingest respectful open-data APIs, transform in-process with **DuckDB**, persist **ZSTD-compressed Parquet**, and replicate updates through **air-gapped `bunker_sync_*` bundles** (LAN, file share, USB/SD) with **SHA-256 manifests**. When the internet fails, pipelines **self-heal** onto local cache — no unhandled network exceptions in the hot path.
+**Project Bunker** is a small Python toolkit for copying open-data API responses into a **local Parquet lake**, querying with **embedded DuckDB**, and shipping updates as **signed, hash-verified folder bundles** you can move by USB, SMB, or any file copy — no custom P2P protocol.
 
 ---
 
-## Architecture (data flow)
+## Why this exists
+
+Councils, field teams, community groups, and disaster-response volunteers often need **the same datasets when uplinks are slow or gone**: incident feeds, weather snapshots, asset registers. Bunker:
+
+- Pulls from configured HTTP APIs when online (respecting cache freshness and rate limits).
+- Falls back to **`cache/`** snapshots when the network fails.
+- Writes **Hive-style date parts** under `data/parquet/` and compacts deduplicated **`_current.parquet`** slices with DuckDB.
+- Packages **`bunker_sync_YYYY-MM-DD/`** folders (Parquet shards + `schema.json` + **Ed25519-signed** `manifest.json`).
+- Offers **optional HMAC-signed UDP broadcasts** on your LAN (`BUNKER_MESH_KEY`) — not a full mesh network.
+
+---
+
+## What is actually implemented (v0.2)
+
+| Capability | Reality |
+|------------|---------|
+| **DuckDB transforms** | Parquet writes use `COPY … (FORMAT parquet, COMPRESSION zstd)`; dedup/compaction runs in DuckDB. |
+| **Partitioning** | `…/<dataset>/ingest_date=YYYY-MM-DD/part-<uuid>.parquet` (not a distributed table catalog). |
+| **“P2P sync”** | **Manual** folder replication; `bunker import-sync` merges verified bundles into the local lake. |
+| **“Mesh”** | **Signed UDP alerts** on port 41567; optional zeroconf helper script — no routing fabric. |
+| **Resilience** | Retries + cache fallback + offline ingest flag; not a distributed HA system. |
+| **Security** | SHA-256 file hashes + Ed25519 manifest signatures; LAN alerts use HMAC with replay checks. |
+
+---
+
+## Architecture
 
 ```text
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────────┐
-│  Open Data API  │────▶│ Resilient Fetch  │────▶│ Raw cache + Parquet │
-│ (USGS, Open-     │     │ (retry → cache)  │     │ data/parquet/**     │
-│  Meteo, …)      │     └────────┬─────────┘     └──────────┬──────────┘
-└─────────────────┘              │                            │
-                                 ▼                            ▼
-                    ┌─────────────────────────┐    ┌──────────────────────────┐
-                    │ DuckDB (embedded SQL)  │◀───│ ZSTD Parquet columnar    │
-                    │ :memory: or local file │    │ partitioned datasets     │
-                    └────────────┬────────────┘    └──────────────────────────┘
-                                 │
-                                 ▼
-              ┌──────────────────────────────────────┐
-              │ bunker_sync_YYYY-MM-DD/              │
-              │  shards/*.parquet                    │
-              │  schema.json  manifest.json (SHA256)│
-              └──────────────┬───────────────────────┘
-                             │
-         ┌───────────────────┼───────────────────┐
-         ▼                   ▼                   ▼
-   LAN / SMB copy      USB handoff         UDP mesh alert
-   (P2P folder sync)   (physical media)    (no DNS)
+ Open API ──▶ fetch (or cache) ──▶ parser registry ──▶ DuckDB COPY ──▶ Parquet parts
+                                                      └──▶ dedup ──▶ _current.parquet
+                                                                        │
+                                                                        ▼
+                                              signed bunker_sync_*  ──▶ USB / LAN copy ──▶ import-sync
 ```
 
-> [!IMPORTANT]
-> **Operational invariant:** Core analytics never require a remote database, warehouse, or live internet. Ingest may use the network when available; transforms and queries run on **local Parquet** only.
-
 > [!NOTE]
-> **Attribution:** Configured sources include license notes (see `config/sources.yaml`). Honor rate limits, ToS, and citation requirements for every upstream API.
+> **Attribution:** Every source in `config/sources.yaml` includes license/attribution fields. You are responsible for compliance with upstream ToS and rate limits.
 
 > [!WARNING]
-> **Emergency failover:** If APIs are unreachable, run `make ingest-offline` or `scripts/blackout-recovery.sh`. Bunker reads the last good snapshot from `cache/` and continues Parquet + sync packaging.
+> **Blackout:** `bunker ingest --offline` / `make ingest-offline` uses **only** `cache/` bytes. Run a normal ingest once while online to seed cache.
 
 ---
 
-## One-command deploy (&lt; 60 seconds)
-
-**Prerequisites:** Python 3.10+ and `make` (optional: Docker for containerized edge nodes).
+## Quick start
 
 ```bash
-git clone https://github.com/tgollogly/project-bunker.git
-cd project-bunker
-make init          # venv + editable install + data dirs
-make ingest-all    # live fetch → Parquet (or make ingest-offline)
-make sync          # creates ./bunker_sync_YYYY-MM-DD/
-make status        # row counts + paths
+make init
+bunker keygen
+make ingest-all          # needs network unless cache already seeded
+make sync
+bunker verify-sync ./bunker_sync_$(date -u +%Y-%m-%d) --public-key data/keys/signing.pub.pem
 ```
 
-**Docker (optional):**
+**Terminal walkthrough (asciinema-friendly):**
 
 ```bash
-docker compose up --build
+make walkthrough
+# or: asciinema rec -c "bash scripts/walkthrough-demo.sh"
 ```
 
-**CLI entrypoint:**
+Simulates: ingest → offline ingest → signed sync → verify → `import-sync` → UDP alert.
+
+---
+
+## CLI
 
 ```bash
 bunker ingest --source usgs_earthquakes_day
+bunker ingest-all --offline
 bunker sync-package
-bunker query "SELECT mag, place FROM bunker_data ORDER BY mag DESC LIMIT 5"
-bunker verify-sync ./bunker_sync_2026-01-01
+bunker verify-sync <bundle> --public-key data/keys/signing.pub.pem
+bunker import-sync <bundle> --public-key data/keys/signing.pub.pem
+bunker query "SELECT COUNT(*) FROM bunker_data"
+export BUNKER_MESH_KEY='your-16+-byte-secret'
+python -m bunker.comms.udp_broadcast send "bundle ready"
 ```
 
 ---
 
-## Repository layout
+## Limitations
 
-| Path | Role |
-|------|------|
-| `config/sources.yaml` | Source URLs, attribution, Parquet partitions |
-| `src/bunker/` | Ingest, DuckDB engine, air-gap packaging, mesh comms |
-| `data/parquet/` | Local columnar lake (gitignored) |
-| `cache/` | Last-good API snapshots for blackout mode |
-| `bunker_sync_*` | Portable sync bundles for P2P / USB |
-| `scripts/blackout-recovery.sh` | Worst-case playbook automation |
-| `Makefile` | `init`, ingest, sync, mesh alerts, tests |
+- **Single-node** tool — no cluster coordinator, no CRDT sync, no background daemon.
+- **Trust model:** Ed25519 public key must be distributed out-of-band; UDP alerts trust a shared symmetric key.
+- **Parsers:** Only registered parsers run; extending sources requires config + (usually) a small Python function.
+- **Windows/macOS/Linux** are CI-tested, but USB paths and permissions remain your OS concern.
+- **Not audited** for hostile-network deployments; treat bundles like any other file from an external peer until verified.
 
 ---
 
-## Air-gapped sync bundles
+## Blackout playbook (short)
 
-Each `bunker_sync_YYYY-MM-DD/` directory is **self-contained**:
+1. `make ingest-offline` — build Parquet from cache.  
+2. `make sync` — signed bundle (needs `data/keys/signing.pem`).  
+3. Hand off folder; peer runs `bunker verify-sync` then `bunker import-sync`.  
+4. Optional: `export BUNKER_MESH_KEY=…` and `make mesh-alert MSG="…"`.
 
-- `shards/*.parquet` — flattened copies of local datasets  
-- `schema.json` — column types (via DuckDB)  
-- `manifest.json` — per-file **SHA-256** for integrity after copy  
-- `OFFLINE_README.txt` — DuckDB one-liner for querying shards  
-
-**Verify after USB/LAN handoff:**
-
-```bash
-make verify SYNC=./bunker_sync_YYYY-MM-DD
-# or: bunker verify-sync ./bunker_sync_YYYY-MM-DD
-```
-
-**Query offline (DuckDB CLI or Python):**
-
-```sql
-SELECT * FROM read_parquet('shards/*.parquet', union_by_name=true);
-```
-
----
-
-## Local mesh communications (no DNS)
-
-Coordinate teams when global routing fails:
-
-```bash
-make mesh-listen                    # UDP listener :41567
-make mesh-alert MSG="Sync bundle ready bay 3"
-python -m bunker.comms.mdns_announce  # broadcast discovery (optional zeroconf extra)
-```
-
----
-
-## Worst-case scenario playbook
-
-### 1. Complete global internet blackout
-
-1. Stop expecting live API pulls.  
-2. `make ingest-offline` — rebuild Parquet from `cache/` only.  
-3. `make sync` — produce a fresh `bunker_sync_*` folder for physical distribution.  
-4. `make mesh-alert MSG="…"` — announce bundle location on LAN.  
-5. Peers run `scripts/blackout-recovery.sh /path/to/bunker_sync_*` to verify and import shards.
-
-### 2. Cloud provider / CDN outage
-
-- Fetcher retries with exponential backoff, then **automatic cache fallback** (`ResilientFetcher`).  
-- Confirm status: `bunker status` — if `from_cache` in ingest JSON, you are on snapshot data.
-
-### 3. Air-gapped data recovery
-
-1. Receive `bunker_sync_YYYY-MM-DD` via USB or SMB.  
-2. `bunker verify-sync <bundle>` — fail closed on hash mismatch.  
-3. Copy `shards/*.parquet` into `data/parquet/imported/`.  
-4. `bunker query "SELECT COUNT(*) FROM bunker_data"`.
-
-### 4. Corrupt or partial copy
-
-- Manifest verification lists missing paths and hash mismatches.  
-- Re-copy only failed shards; do not trust unverified Parquet in production analytics.
+See `scripts/blackout-recovery.sh` for automation.
 
 ---
 
 ## Development
 
 ```bash
-make test
-make lint
+make test        # pytest, ≥85% coverage on src/bunker
+make lint        # ruff check .
+make typecheck   # mypy
 ```
 
-CI runs Ruff + pytest on every push/PR.
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
