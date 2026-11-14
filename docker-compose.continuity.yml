@@ -1,0 +1,35 @@
+# Bunker Continuity — optional Matrix + Element (profile: matrix)
+# Copyright © 2026 Thomas Gollogly
+
+services:
+  conduit:
+    image: matrixconduit/matrix-conduit:latest
+    profiles: [matrix]
+    environment:
+      CONDUIT_CONFIG: /etc/conduit/conduit.toml
+    volumes:
+      - ./deploy/conduit/conduit.toml:/etc/conduit/conduit.toml:ro
+      - conduit-data:/var/lib/matrix-conduit
+    ports:
+      - "8008:6167"
+    networks:
+      - bunker-net
+
+  element:
+    image: vectorim/element-web:latest
+    profiles: [matrix]
+    environment:
+      CONFIG_FILE: /app/config.json
+    volumes:
+      - ./deploy/element/config.json:/app/config.json:ro
+    ports:
+      - "8080:80"
+    networks:
+      - bunker-net
+
+volumes:
+  conduit-data:
+
+networks:
+  bunker-net:
+    driver: bridge

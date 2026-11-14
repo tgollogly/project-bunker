@@ -8,6 +8,12 @@ from pathlib import Path
 import click
 
 from bunker.config import get_source, load_sources_config
+from bunker.continuity.config import load_continuity_config
+from bunker.continuity.paths import ContinuityPaths
+from bunker.continuity.serve.app import create_app
+from bunker.continuity.status import continuity_status
+from bunker.continuity.sync_all import run_continuity_sync
+from bunker.continuity.watch.run import watch_once
 from bunker.crypto.signing import load_public_key
 from bunker.duckdb_engine import BunkerDuckDB
 from bunker.ingest.pipeline import ingest_source
@@ -154,6 +160,58 @@ def cmd_query(ctx: click.Context, sql: str) -> None:
         click.echo("  ".join(c.ljust(widths[i]) for i, c in enumerate(cols)))
         for r in rows:
             click.echo("  ".join(str(r[i]).ljust(widths[i]) for i in range(len(cols))))
+
+
+def _continuity_cfg() -> tuple[ContinuityPaths, dict]:
+    root = _project_root()
+    cfg_path = root / "config" / "continuity.yaml"
+    cfg = load_continuity_config(cfg_path)
+    paths = ContinuityPaths.from_config(root, cfg)
+    return paths, cfg
+
+
+@main.group()
+def continuity() -> None:
+    """Bunker Continuity — Microsoft 365 outage resilience."""
+
+
+@continuity.command("sync")
+@click.pass_context
+def cmd_continuity_sync(ctx: click.Context) -> None:
+    paths, cfg = _continuity_cfg()
+    try:
+        results = run_continuity_sync(paths, cfg)
+    except Exception as exc:
+        click.echo(f"ERROR: {exc}", err=True)
+        sys.exit(1)
+    click.echo(json.dumps(results, indent=2))
+
+
+@continuity.command("status")
+@click.pass_context
+def cmd_continuity_status(ctx: click.Context) -> None:
+    paths, _cfg = _continuity_cfg()
+    click.echo(json.dumps(continuity_status(paths), indent=2))
+
+
+@main.command("watch")
+@click.pass_context
+def cmd_watch(ctx: click.Context) -> None:
+    paths, cfg = _continuity_cfg()
+    result = watch_once(paths, cfg, graph_client=None)
+    click.echo(json.dumps(result, indent=2))
+
+
+@main.command("serve")
+@click.option("--host", default="127.0.0.1")
+@click.option("--port", default=8765)
+@click.pass_context
+def cmd_serve(ctx: click.Context, host: str, port: int) -> None:
+    paths, cfg = _continuity_cfg()
+    import uvicorn
+
+    app = create_app(paths, cfg)
+    uvicorn.run(app, host=host, port=port, log_level="info")
 
 
 @main.command("status")

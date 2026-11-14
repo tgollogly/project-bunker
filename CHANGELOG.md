@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.0] — 2026-11-14
+
+### Bunker Continuity (Microsoft 365 outage kit)
+
+- Microsoft Graph sync: calendars (14d), contacts, SharePoint folder docs → Parquet + SHA-256 doc manifests.
+- `bunker continuity sync` / `continuity status`; cache retention when cloud unreachable.
+- `bunker watch` with OK/DEGRADED/DOWN hysteresis; local incident on DOWN; Matrix + SMS (stub/Twilio).
+- `bunker serve` — offline FastAPI portal (calendar, contacts, docs, status, Element link).
+- Fernet encryption for sync metadata (`BUNKER_DATA_KEY`); `SECURITY.md` (UK GDPR notes).
+- Docker Compose profile: Conduit + Element for `#outage` backup chat.
+- `scripts/continuity-outage-demo.sh` — simulated outage walkthrough.
+- Continuity Parquet included in signed sync bundles.
+
 ## [0.2.0] — 2026-11-14
 
 ### Added

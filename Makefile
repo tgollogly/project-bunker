@@ -56,3 +56,9 @@ blackout:
 
 walkthrough:
 	@bash scripts/walkthrough-demo.sh
+
+continuity-demo:
+	@bash scripts/continuity-outage-demo.sh
+
+matrix-up:
+	@docker compose -f docker-compose.continuity.yml --profile matrix up -d
