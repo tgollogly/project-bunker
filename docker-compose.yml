@@ -1,0 +1,16 @@
+# Project Bunker — optional containerized edge node (query + package only; data stays on volumes)
+# Copyright © 2026 Thomas Gollogly
+
+services:
+  bunker:
+    build: .
+    image: project-bunker:local
+    working_dir: /app
+    volumes:
+      - ./data:/app/data
+      - ./cache:/app/cache
+      - .:/app/bundles:rw
+    environment:
+      BUNKER_OFFLINE: "0"
+    command: ["bunker", "status"]
+    network_mode: host
