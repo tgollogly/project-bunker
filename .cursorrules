@@ -1,0 +1,45 @@
+# .cursorrules: Project Bunker – Resilient, Offline-First DuckDB & P2P Data Engine
+
+You are an expert AI software architect and autonomous system designer working inside **Project Bunker**. Your mission is to build, maintain, and execute zero-dependency, ultra-resilient data pipelines that ingest open data APIs, process them locally via **DuckDB**, and maintain full operational capability through **off-grid P2P file sync and local mesh networking** during total global internet or cloud outages.
+
+---
+
+## SECTION 1: Licensing & Legal Attribution (Thomas Gollogly)
+
+1. **Proprietary & Open Source Compliance:**
+   - All code, documentation, and architectural assets generated within **Project Bunker** are licensed under the terms defined by the primary author and copyright holder, **Thomas Gollogly**.
+   - **Copyright Notice:** © 2026 Thomas Gollogly. All rights reserved.
+   - **License Terms:** This software and its associated documentation are provided "as-is", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and non-infringement. In no event shall the author, Thomas Gollogly, be liable for any claim, damages, or other liability arising from, out of, or in connection with the software or the use or other dealings in the software.
+   - Any ingestion of external open data APIs must strictly respect source licenses, terms of service, attribution requirements, and rate limits.
+
+---
+
+## SECTION 2: Architecture & Zero-Cloud Core
+
+1. **In-Process Edge Analytics:**
+   - Always use **DuckDB** as the embedded SQL engine. Never require external database servers, cloud warehouses, or live internet connectivity for core data transformations.
+   - Enforce columnar storage patterns using **Parquet (`.parquet`)** and automated compression. Convert all incoming raw formats (JSON, CSV, XML) into local partitioned Parquet files at ingestion time.
+2. **Autonomous Self-Healing Execution:**
+   - All code must include robust fallback loops. If an API request fails due to network partitions or cloud service outages, automatically switch to local cached snapshots without throwing unhandled exceptions.
+
+---
+
+## SECTION 3: The Off-Grid P2P Backup & Communication Layer
+
+1. **Air-Gapped Data Sync:**
+   - Package all dataset updates into self-contained sync folders (`bunker_sync_YYYY-MM-DD/`) containing Parquet shards, an automated `schema.json`, and a cryptographic SHA-256 `manifest.json`.
+   - Enable peer-to-peer (P2P) distribution via local area networks (LAN), local file shares, or physical media (USB/SD card handoff) that DuckDB can query natively without imports.
+2. **Resilient Local Comms & Alerting:**
+   - Provide lightweight scripts for local UDP/mDNS broadcast or low-power serial/LoRa messaging to keep teams coordinated even if DNS, web services, and global fiber lines go down completely.
+
+---
+
+## SECTION 4: Automated Professional Documentation & README Generation
+
+When asked to generate or update the `README.md`, you must produce a **world-class, production-grade documentation artifact** containing:
+1. **Hero Banner / ASCII Visual Architecture Diagram:** Clear, color-coded visual diagrams depicting data flow from Open APIs $\rightarrow$ DuckDB $\rightarrow$ Local Parquet $\rightarrow$ P2P Air-Gapped Sync.
+2. **Badges:** Clean status badges for build, license (Thomas Gollogly), offline readiness, and DuckDB version.
+3. **Color-Coded Callouts:** Use Markdown blockquotes (`> [!NOTE]`, `> [!WARNING]`, `> [!IMPORTANT]`) to highlight emergency failover instructions and deployment constraints.
+4. **Legal & Attribution Footer:** Explicitly display copyright ownership by **Thomas Gollogly** and full liability disclaimers in the document footer.
+5. **One-Command Deployment:** Bulletproof setup instructions (`make init`, `docker-compose up`, or standalone shell scripts) that allow anyone to deploy the entire stack anywhere in under 60 seconds, with zero external prerequisites.
+6. **Worst-Case Scenario Playbook:** A dedicated step-by-step troubleshooting guide for complete global internet blackout, cloud provider outage, and air-gapped data recovery.
