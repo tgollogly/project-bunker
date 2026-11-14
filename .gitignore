@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+.ruff_cache/
+
+# Bunker runtime data (never commit live datasets)
+data/raw/
+data/parquet/
+cache/
+bunker_sync_*/
+*.duckdb
+*.db
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

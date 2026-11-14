@@ -1,0 +1,28 @@
+# Open data sources — respect licenses, ToS, attribution, and rate limits.
+# Offline transforms require only local Parquet; URLs are used at ingest time.
+
+bunker:
+  data_root: data
+  cache_root: cache
+  sync_root: .
+
+sources:
+  - id: usgs_earthquakes_day
+    name: USGS Earthquake Feed (past day)
+    url: https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson
+    format: geojson
+    attribution: "Data courtesy of the U.S. Geological Survey"
+    license_note: "USGS products are in the public domain; cite USGS as source."
+    min_fetch_interval_seconds: 60
+    duckdb_table: earthquakes
+    parquet_partition: usgs/earthquakes/day
+
+  - id: open_meteo_demo
+    name: Open-Meteo forecast sample (London)
+    url: https://api.open-meteo.com/v1/forecast?latitude=51.5072&longitude=-0.1276&hourly=temperature_2m&forecast_days=1
+    format: json
+    attribution: "Weather data by Open-Meteo.com"
+    license_note: "Open-Meteo API — see https://open-meteo.com/en/terms"
+    min_fetch_interval_seconds: 300
+    duckdb_table: weather_hourly
+    parquet_partition: open_meteo/london/hourly
