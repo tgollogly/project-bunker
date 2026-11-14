@@ -6,8 +6,9 @@ from typing import Any
 
 from bunker.continuity.graph.client import HttpxGraphClient
 from bunker.continuity.meta import write_sync_meta
+from bunker.continuity.parquet_io import write_encrypted_parquet_rows
 from bunker.continuity.paths import ContinuityPaths
-from bunker.ingest.parquet_writer import hive_part_path, write_rows_parquet_duckdb
+from bunker.ingest.parquet_writer import hive_part_path
 
 logger = logging.getLogger(__name__)
 
@@ -49,8 +50,13 @@ def sync_contacts(
     partition = paths.parquet_root / "m365" / "contacts"
     if rows:
         part = hive_part_path(partition)
-        write_rows_parquet_duckdb(rows, part)
+        write_encrypted_parquet_rows(rows, part, continuity_root=paths.continuity_root)
 
-    write_sync_meta(paths.meta_root, "m365_contacts", {"row_count": len(rows)})
+    write_sync_meta(
+        paths.meta_root,
+        "m365_contacts",
+        {"row_count": len(rows)},
+        continuity_root=paths.continuity_root,
+    )
     logger.info("Contacts sync: %s rows", len(rows))
     return {"source": "m365_contacts", "contacts": len(rows)}

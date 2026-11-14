@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from bunker.continuity.encryption import EncryptionRequiredError, ensure_encryption_key
 from bunker.continuity.graph.auth import build_token_provider
 from bunker.continuity.graph.client import HttpxGraphClient
 from bunker.continuity.graph.sync_calendars import sync_calendars
@@ -17,6 +18,10 @@ def run_continuity_sync(paths: ContinuityPaths, cfg: dict[str, Any]) -> list[dic
     """Sync Graph sources. On failure, leaves existing local data untouched."""
     cont = cfg.get("continuity", {})
     results: list[dict[str, Any]] = []
+    try:
+        ensure_encryption_key(cfg, paths.continuity_root)
+    except EncryptionRequiredError:
+        raise
     try:
         client = HttpxGraphClient(build_token_provider())
     except RuntimeError as exc:
