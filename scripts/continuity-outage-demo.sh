@@ -2,13 +2,29 @@
 # Simulates M365 probes failing → watch DOWN → Matrix/SMS stub alert → offline web UI
 set -euo pipefail
 cd "$(dirname "$0")/.."
-source .venv/bin/activate 2>/dev/null || make init >/dev/null
+if [[ -f .venv/bin/activate ]]; then
+  # shellcheck disable=SC1091
+  source .venv/bin/activate
+elif [[ -x .venv/bin/bunker ]]; then
+  export PATH="$PWD/.venv/bin:$PATH"
+else
+  make init >/dev/null
+  # shellcheck disable=SC1091
+  source .venv/bin/activate
+fi
 
 export BUNKER_MESH_KEY="${BUNKER_MESH_KEY:-sixteen-byte-key!!}"
 export BUNKER_DATA_KEY="${BUNKER_DATA_KEY:-0123456789abcdef0123456789abcdef}"
 
-echo "=== Seed local continuity cache (mock Graph via tests / prior sync) ==="
-pytest -q tests/test_continuity_core.py::test_graph_calendar_and_contacts_sync
+if [[ ! -f data/keys/signing.pem ]]; then
+  bunker keygen
+fi
+
+echo "=== Seed local continuity cache (fictional sample data — no Graph) ==="
+bunker continuity seed-sample
+
+echo "=== Current sync status ==="
+bunker continuity status
 
 echo "=== Simulate outage (probes forced down) ==="
 python - <<'PY'
@@ -29,6 +45,7 @@ for i in range(3):
         probe_override={"outlook": False, "teams": False},
     )
     print(f"watch tick {i+1}:", json.dumps(out))
+assert out.get("state") == "DOWN", out
 PY
 
 echo "=== Signed LAN alert (HMAC UDP) ==="

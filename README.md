@@ -3,7 +3,7 @@
 # Project Bunker
 
 [![CI](https://github.com/tgollogly/project-bunker/actions/workflows/ci.yml/badge.svg)](https://github.com/tgollogly/project-bunker/actions/workflows/ci.yml)
-![Version](https://img.shields.io/badge/version-0.3.3-informational)
+![Version](https://img.shields.io/badge/version-0.3.4-informational)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 
 _Project Bunker is an independent, free, open-source project. It is not affiliated with, endorsed by, or sponsored by Microsoft, The Bunker, Bunker Technical Solutions, or any other company. Microsoft 365, Outlook, Teams and SharePoint are trademarks of Microsoft Corporation._
@@ -99,6 +99,18 @@ bunker continuity sync
 bunker continuity status
 bunker watch
 bunker serve --port 8765
+```
+
+### Try it in 2 minutes with sample data (no Microsoft account needed)
+
+```bash
+make init
+export BUNKER_DATA_KEY=0123456789abcdef0123456789abcdef   # demo Fernet key
+bunker keygen
+bunker continuity seed-sample    # fictional calendar, contacts, runbook
+bunker continuity status         # should list m365_calendar, contacts, docs
+bash scripts/continuity-outage-demo.sh
+bunker serve --port 8765           # open http://127.0.0.1:8765 — watch DOWN + Sam Sampleton
 ```
 
 **Outage demo (simulated probes):**

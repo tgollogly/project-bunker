@@ -119,10 +119,25 @@ def _check_graph_reachability() -> CheckResult:
     return CheckResult("graph reachability", False, f"HTTP {resp.status_code}")
 
 
-def _check_probe_hosts(cfg: dict[str, Any]) -> CheckResult:
-    hosts = cfg.get("continuity", {}).get("probe_hosts") or []
+def probe_hosts_from_config(cfg: dict[str, Any]) -> list[dict[str, str]]:
+    cont = cfg.get("continuity", {})
+    watch = cont.get("watch") or {}
+    hosts = watch.get("probe_hosts")
+    if hosts is None:
+        hosts = cont.get("probe_hosts")
     if not hosts:
-        return CheckResult("watch probes", False, "no probe_hosts in continuity.yaml")
+        return []
+    return list(hosts)
+
+
+def _check_probe_hosts(cfg: dict[str, Any]) -> CheckResult:
+    hosts = probe_hosts_from_config(cfg)
+    if not hosts:
+        return CheckResult(
+            "watch probes",
+            False,
+            "no probe_hosts under continuity.watch in continuity.yaml",
+        )
     return CheckResult("watch probes", True, f"{len(hosts)} probe(s) configured")
 
 

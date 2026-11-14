@@ -17,9 +17,10 @@ def continuity_tree(project_tree: Path) -> Path:
 continuity:
   data_root: data/continuity
   require_encryption: false
-  probe_hosts:
-    - name: outlook
-      url: https://example.com
+  watch:
+    probe_hosts:
+      - name: outlook
+        url: https://example.com
 """,
         encoding="utf-8",
     )

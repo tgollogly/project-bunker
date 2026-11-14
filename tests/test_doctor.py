@@ -38,7 +38,7 @@ def test_doctor_fails_without_signing_key(tmp_path: Path, monkeypatch: pytest.Mo
         "bunker:\n  data_root: data\nsources: []\n", encoding="utf-8"
     )
     (root / "config" / "continuity.yaml").write_text(
-        "continuity:\n  data_root: data/continuity\n  probe_hosts: []\n",
+        "continuity:\n  data_root: data/continuity\n  watch:\n    probe_hosts: []\n",
         encoding="utf-8",
     )
     (root / "data").mkdir()
@@ -57,9 +57,10 @@ def test_doctor_warns_loose_key_permissions(
         """
 continuity:
   data_root: data/continuity
-  probe_hosts:
-    - name: outlook
-      url: https://example.com
+  watch:
+    probe_hosts:
+      - name: outlook
+        url: https://example.com
 """,
         encoding="utf-8",
     )
@@ -73,9 +74,10 @@ def test_cli_doctor_invocation(project_tree: Path, monkeypatch: pytest.MonkeyPat
         """
 continuity:
   data_root: data/continuity
-  probe_hosts:
-    - name: outlook
-      url: https://example.com
+  watch:
+    probe_hosts:
+      - name: outlook
+        url: https://example.com
 """,
         encoding="utf-8",
     )

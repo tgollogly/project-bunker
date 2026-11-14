@@ -10,6 +10,7 @@ from fastapi.templating import Jinja2Templates
 
 from bunker.continuity.parquet_io import query_rows_from_root
 from bunker.continuity.paths import ContinuityPaths
+from bunker.continuity.seed_sample import SAMPLE_CONTACT_NAME
 from bunker.continuity.serve.auth import ServeAuthConfig, serve_auth_middleware
 from bunker.continuity.serve.security import SECURITY_HEADERS, safe_element_url
 from bunker.continuity.status import continuity_status
@@ -59,12 +60,27 @@ def create_app(
     @app.get("/", response_class=HTMLResponse)
     def home(request: Request) -> HTMLResponse:
         watch = load_watch_state(paths.state_file)
+        featured_contact = None
+        names = query_rows_from_root(
+            paths.parquet_root / "m365" / "contacts",
+            ["display_name"],
+            order_by="display_name",
+            limit=50,
+            continuity_root=continuity_root,
+        )
+        for (name,) in names:
+            if str(name or "") == SAMPLE_CONTACT_NAME:
+                featured_contact = SAMPLE_CONTACT_NAME
+                break
+        if featured_contact is None and names:
+            featured_contact = str(names[0][0] or "")
         return templates.TemplateResponse(
             request,
             "home.html",
             {
                 "watch_state": watch.state.value,
                 "element_url": element_url,
+                "featured_contact": featured_contact,
             },
         )
 

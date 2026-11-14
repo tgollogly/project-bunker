@@ -85,7 +85,7 @@ def test_doctor_graph_env_and_probes() -> None:
     assert _check_graph_env().passed is False
     assert _check_probe_hosts({"continuity": {"probe_hosts": []}}).passed is False
     ok = _check_probe_hosts(
-        {"continuity": {"probe_hosts": [{"name": "a", "url": "https://x"}]}}
+        {"continuity": {"watch": {"probe_hosts": [{"name": "a", "url": "https://x"}]}}}
     )
     assert ok.passed
 
