@@ -15,8 +15,10 @@ from bunker.continuity.serve.app import create_app
 from bunker.continuity.serve.auth import (
     ServeAuthConfig,
     auth_configured,
+    login_attempts_path,
     loopback_host,
     save_password_hash,
+    tls_enabled,
 )
 from bunker.continuity.status import continuity_status
 from bunker.continuity.sync_all import run_continuity_sync
@@ -238,22 +240,28 @@ def serve(
             err=True,
         )
         sys.exit(1)
-    if not loopback_host(host) and certfile is None:
+    use_tls = tls_enabled(certfile, keyfile)
+    if not loopback_host(host) and not use_tls:
         click.echo(
-            "WARNING: serving on LAN without TLS (--certfile/--keyfile) "
-            "exposes traffic in cleartext",
+            "WARNING: bunker serve is binding to a non-loopback address without TLS. "
+            "Passwords and session cookies will cross the network in cleartext unless you "
+            "pass --certfile and --keyfile.",
             err=True,
         )
+    if not loopback_host(host) and use_tls:
+        click.echo("TLS enabled — session cookies will use the Secure flag.", err=False)
     import uvicorn
 
-    auth = (
-        ServeAuthConfig(auth_path=auth_path, secure_cookie=certfile is not None)
-        if not loopback_host(host)
-        else None
-    )
+    auth = None
+    if not loopback_host(host):
+        auth = ServeAuthConfig(
+            auth_path=auth_path,
+            rate_limit_path=login_attempts_path(paths.continuity_root),
+            secure_cookie=use_tls,
+        )
     app = create_app(paths, cfg, bind_host=host, auth=auth)
     ssl_kwargs: dict = {}
-    if certfile and keyfile:
+    if use_tls:
         ssl_kwargs = {"ssl_certfile": str(certfile), "ssl_keyfile": str(keyfile)}
     uvicorn.run(app, host=host, port=port, log_level="info", **ssl_kwargs)
 

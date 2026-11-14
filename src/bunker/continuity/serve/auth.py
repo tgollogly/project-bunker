@@ -14,9 +14,12 @@ from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 from starlette.responses import HTMLResponse
 
+from bunker.io.atomic import atomic_write_text
+
 _LOGIN_WINDOW_SEC = 300
 _MAX_ATTEMPTS = 10
 _SESSION_TTL_SEC = 12 * 3600
+_ATTEMPTS_FILENAME = "serve_login_attempts.json"
 
 
 def _hash_password(password: str, *, salt: bytes) -> str:
@@ -56,13 +59,47 @@ def auth_configured(auth_path: Path) -> bool:
     return auth_path.is_file() and bool(auth_path.read_text(encoding="utf-8").strip())
 
 
+def login_attempts_path(continuity_root: Path) -> Path:
+    return continuity_root / _ATTEMPTS_FILENAME
+
+
+def _load_attempts(path: Path) -> dict[str, tuple[int, float]]:
+    if not path.is_file():
+        return {}
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {}
+    out: dict[str, tuple[int, float]] = {}
+    for ip, row in raw.items():
+        if isinstance(row, dict):
+            out[ip] = (int(row.get("count", 0)), float(row.get("window_start", time.time())))
+    return out
+
+
+def _save_attempts(path: Path, attempts: dict[str, tuple[int, float]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        ip: {"count": count, "window_start": start} for ip, (count, start) in attempts.items()
+    }
+    atomic_write_text(path, json.dumps(payload, indent=2))
+    try:
+        os.chmod(path, 0o600)
+    except OSError:
+        pass
+
+
 @dataclass
 class ServeAuthConfig:
     auth_path: Path
+    rate_limit_path: Path
     session_secret: bytes = field(default_factory=lambda: secrets.token_bytes(32))
     secure_cookie: bool = False
     _sessions: dict[str, float] = field(default_factory=dict)
     _attempts: dict[str, tuple[int, float]] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        self._attempts = _load_attempts(self.rate_limit_path)
 
     def _sign_session(self, sid: str, exp: float) -> str:
         payload = f"{sid}.{int(exp)}".encode()
@@ -109,6 +146,8 @@ class ServeAuthConfig:
         if now - start > _LOGIN_WINDOW_SEC:
             count = 0
             start = now
+            self._attempts[client_ip] = (count, start)
+            _save_attempts(self.rate_limit_path, self._attempts)
         return count < _MAX_ATTEMPTS
 
     def record_failed_login(self, client_ip: str) -> None:
@@ -117,6 +156,7 @@ class ServeAuthConfig:
         if now - start > _LOGIN_WINDOW_SEC:
             count, start = 0, now
         self._attempts[client_ip] = (count + 1, start)
+        _save_attempts(self.rate_limit_path, self._attempts)
 
     def verify_login(self, password: str) -> bool:
         if not self.auth_path.is_file():
@@ -127,6 +167,10 @@ class ServeAuthConfig:
 
 def loopback_host(host: str) -> bool:
     return host in ("127.0.0.1", "localhost", "::1")
+
+
+def tls_enabled(certfile: Path | None, keyfile: Path | None) -> bool:
+    return certfile is not None and keyfile is not None
 
 
 def serve_auth_middleware(auth: ServeAuthConfig, bind_host: str):  # type: ignore[no-untyped-def]

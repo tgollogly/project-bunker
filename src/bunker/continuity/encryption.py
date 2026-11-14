@@ -3,11 +3,14 @@ from __future__ import annotations
 import base64
 import os
 import secrets
+from collections.abc import Callable
 from pathlib import Path
 from typing import Final
 
 from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
+
+from bunker.io.atomic import atomic_write_bytes
 
 _ENV_KEY: Final = "BUNKER_DATA_KEY"
 _ENV_NEW_KEY: Final = "BUNKER_DATA_KEY_NEW"
@@ -20,6 +23,10 @@ _SCRYPT_P: Final = 1
 
 class EncryptionRequiredError(RuntimeError):
     """Raised when continuity requires encryption but no key is configured."""
+
+
+class RekeyAbortError(RuntimeError):
+    """Raised when rekey aborts mid-flight (used in tests)."""
 
 
 def _is_raw_fernet_key(raw: str) -> bool:
@@ -44,24 +51,38 @@ def load_or_create_salt(continuity_root: Path) -> bytes:
         return path.read_bytes()
     salt = secrets.token_bytes(16)
     continuity_root.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(salt)
+    atomic_write_private(path, salt)
+    return salt
+
+
+def _chmod_private(path: Path) -> None:
     try:
         os.chmod(path, 0o600)
     except OSError:
         pass
-    return salt
+
+
+def atomic_write_private(path: Path, data: bytes) -> None:
+    atomic_write_bytes(path, data)
+    _chmod_private(path)
+
+
+def fernet_from_raw(raw: str, *, continuity_root: Path, salt: bytes | None = None) -> Fernet:
+    if _is_raw_fernet_key(raw):
+        return Fernet(raw.encode("ascii"))
+    if salt is None:
+        salt = load_or_create_salt(continuity_root)
+    return Fernet(_fernet_bytes_from_passphrase(raw, salt))
 
 
 def fernet_from_material(*, continuity_root: Path | None = None) -> Fernet | None:
     raw = os.environ.get(_ENV_KEY, "").strip()
     if not raw:
         return None
-    if _is_raw_fernet_key(raw):
-        return Fernet(raw.encode("ascii"))
-    if continuity_root is None:
+    if continuity_root is None and not _is_raw_fernet_key(raw):
         raise RuntimeError("passphrase BUNKER_DATA_KEY requires continuity data root for salt")
-    salt = load_or_create_salt(continuity_root)
-    return Fernet(_fernet_bytes_from_passphrase(raw, salt))
+    root = continuity_root or Path(".")
+    return fernet_from_raw(raw, continuity_root=root)
 
 
 def require_encryption_config(cfg: dict) -> bool:
@@ -81,11 +102,15 @@ def ensure_encryption_key(cfg: dict, continuity_root: Path) -> None:
         )
 
 
+def encrypt_blob(plaintext: bytes, fernet: Fernet) -> bytes:
+    return _PREFIX + fernet.encrypt(plaintext)
+
+
 def encrypt_at_rest(plaintext: bytes, *, continuity_root: Path) -> bytes:
     f = fernet_from_material(continuity_root=continuity_root)
     if f is None:
         raise EncryptionRequiredError("BUNKER_DATA_KEY required to encrypt continuity data")
-    return _PREFIX + f.encrypt(plaintext)
+    return encrypt_blob(plaintext, f)
 
 
 def decrypt_at_rest(blob: bytes, *, continuity_root: Path) -> bytes:
@@ -100,6 +125,15 @@ def decrypt_at_rest(blob: bytes, *, continuity_root: Path) -> bytes:
         raise RuntimeError("continuity decrypt failed (wrong key?)") from exc
 
 
+def decrypt_with_fernet(blob: bytes, fernet: Fernet) -> bytes:
+    if not blob.startswith(_PREFIX):
+        raise RuntimeError("continuity blob is not encrypted (expected FERNET prefix)")
+    try:
+        return fernet.decrypt(blob[len(_PREFIX) :])
+    except InvalidToken as exc:
+        raise RuntimeError("continuity decrypt failed (wrong key?)") from exc
+
+
 def encrypt_optional(plaintext: bytes, *, continuity_root: Path) -> bytes:
     return encrypt_at_rest(plaintext, continuity_root=continuity_root)
 
@@ -108,8 +142,27 @@ def decrypt_optional(blob: bytes, *, continuity_root: Path) -> bytes:
     return decrypt_at_rest(blob, continuity_root=continuity_root)
 
 
-def rekey_tree(continuity_root: Path, *, old_root: Path | None = None) -> int:
+def _encrypted_paths(continuity_root: Path) -> list[Path]:
+    out: list[Path] = []
+    for path in continuity_root.rglob("*"):
+        if not path.is_file():
+            continue
+        if path.name == _SALT_NAME:
+            continue
+        raw = path.read_bytes()
+        if raw.startswith(_PREFIX):
+            out.append(path)
+    return sorted(out)
+
+
+def rekey_tree(
+    continuity_root: Path,
+    *,
+    old_root: Path | None = None,
+    on_file_rekeyed: Callable[[Path, int, int], None] | None = None,
+) -> int:
     """Re-encrypt all FERNET blobs under continuity_root using BUNKER_DATA_KEY_NEW."""
+
     new_raw = os.environ.get(_ENV_NEW_KEY, "").strip()
     if not new_raw:
         raise RuntimeError(f"{_ENV_NEW_KEY} must be set for rekey")
@@ -117,20 +170,29 @@ def rekey_tree(continuity_root: Path, *, old_root: Path | None = None) -> int:
     if not old_key:
         raise RuntimeError(f"{_ENV_KEY} must be set (current key) for rekey")
 
-    count = 0
-    for path in continuity_root.rglob("*"):
-        if not path.is_file():
-            continue
-        raw = path.read_bytes()
-        if not raw.startswith(_PREFIX):
-            continue
-        plain = decrypt_at_rest(raw, continuity_root=old_root or continuity_root)
-        os.environ[_ENV_KEY] = new_raw
-        try:
-            new_blob = encrypt_at_rest(plain, continuity_root=continuity_root)
-        finally:
-            os.environ[_ENV_KEY] = old_key
-        path.write_bytes(new_blob)
-        count += 1
-    os.environ[_ENV_KEY] = new_raw
-    return count
+    root = old_root or continuity_root
+    old_fernet = fernet_from_raw(old_key, continuity_root=root)
+    new_salt: bytes | None = None
+    if not _is_raw_fernet_key(new_raw):
+        new_salt = secrets.token_bytes(16)
+        new_fernet = fernet_from_raw(new_raw, continuity_root=continuity_root, salt=new_salt)
+    else:
+        new_fernet = fernet_from_raw(new_raw, continuity_root=continuity_root)
+
+    paths = _encrypted_paths(continuity_root)
+    plaintexts: dict[Path, bytes] = {}
+    for path in paths:
+        blob = path.read_bytes()
+        plaintexts[path] = decrypt_with_fernet(blob, old_fernet)
+
+    total = len(paths)
+    for index, path in enumerate(paths, start=1):
+        new_blob = encrypt_blob(plaintexts[path], new_fernet)
+        atomic_write_bytes(path, new_blob)
+        if on_file_rekeyed is not None:
+            on_file_rekeyed(path, index, total)
+
+    if new_salt is not None:
+        atomic_write_private(continuity_root / _SALT_NAME, new_salt)
+
+    return total

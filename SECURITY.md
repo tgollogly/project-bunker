@@ -1,6 +1,6 @@
 # Security & privacy (Bunker Continuity)
 
-Copyright © 2026 Thomas Gollogly.
+Copyright (c) 2026 Thomas Gollogly. Released under the MIT License (see `LICENSE`).
 
 ## Personal data (UK GDPR)
 
@@ -49,6 +49,14 @@ This kit targets **trusted LAN / single-org** continuity, not hostile-internet m
 - The offline UI uses Jinja2 autoescape, validates `element_url` as http(s) only, and sets CSP / `nosniff` / `Referrer-Policy` headers.
 
 Matrix and Element in Docker are **convenience** fallbacks; harden Conduit/Synapse per Matrix.org production guidance before internet exposure.
+
+## v0.3.2 hardening
+
+| Topic | Change |
+|-------|--------|
+| Rekey | Per-file atomic replace; new passphrase salt written only after all ciphertext is updated (no half-migrated tree). |
+| Serve brute force | Failed login counts persist on disk (`serve_login_attempts.json`, `0600`), not only in memory. |
+| Session cookies | `Secure` automatically when TLS cert/key pair is configured for `bunker serve`. |
 
 ## Security review fixes (v0.3.1)
 

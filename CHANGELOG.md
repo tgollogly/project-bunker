@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.2] — 2026-11-14
+
+### License
+
+- Project Bunker is now open-sourced under the **MIT License** (`LICENSE` at repository root). Contributions are accepted under MIT (see `CONTRIBUTING.md`).
+
+### Reliability & hardening
+
+- `bunker continuity rekey` uses atomic writes per file; passphrase rekeys defer new `.fernet_salt` until all blobs are re-encrypted.
+- Serve login rate limits persist in `serve_login_attempts.json` (mode `0600`) across restarts.
+- `bunker serve` sets `Secure` on session cookies when both `--certfile` and `--keyfile` are set; clearer LAN-without-TLS warning at startup.
+- Fix duplicated `FakeGraph` / `continuity_paths` definitions in `tests/conftest.py` (CI Ruff F811).
+
 ## [0.3.1] — 2026-11-14
 
 ### Security (Bunker Continuity)
