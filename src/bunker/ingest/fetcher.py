@@ -5,7 +5,7 @@ import logging
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import httpx
 
@@ -18,6 +18,7 @@ class FetchResult:
     content_type: str | None
     from_cache: bool
     source_path: Path
+    cache_reason: Literal["network", "fresh", "fallback"] = "network"
 
 
 class ResilientFetcher:
@@ -35,6 +36,16 @@ class ResilientFetcher:
     def _meta_path(self, cache_key: str) -> Path:
         return self.cache_dir / f"{cache_key}.meta.json"
 
+    def cache_age_seconds(self, cache_key: str) -> float | None:
+        meta_path = self._meta_path(cache_key)
+        if not meta_path.is_file():
+            return None
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        fetched_at = meta.get("fetched_at")
+        if fetched_at is None:
+            return None
+        return time.time() - float(fetched_at)
+
     def _write_cache(self, cache_key: str, body: bytes, content_type: str | None) -> Path:
         path = self._cache_path(cache_key)
         path.write_bytes(body)
@@ -46,7 +57,9 @@ class ResilientFetcher:
         self._meta_path(cache_key).write_text(json.dumps(meta, indent=2), encoding="utf-8")
         return path
 
-    def _read_cache(self, cache_key: str) -> FetchResult | None:
+    def _read_cache(
+        self, cache_key: str, *, reason: Literal["fresh", "fallback"] = "fallback"
+    ) -> FetchResult | None:
         path = self._cache_path(cache_key)
         if not path.is_file():
             return None
@@ -54,12 +67,18 @@ class ResilientFetcher:
         meta_path = self._meta_path(cache_key)
         if meta_path.is_file():
             meta = json.loads(meta_path.read_text(encoding="utf-8"))
-        logger.warning("Network unavailable or request failed — using cached snapshot %s", path)
+        if reason == "fallback":
+            logger.warning(
+                "Network unavailable or request failed — using cached snapshot %s", path
+            )
+        else:
+            logger.info("Skipping network fetch; cache still fresh for %s", cache_key)
         return FetchResult(
             payload=path.read_bytes(),
             content_type=meta.get("content_type"),
             from_cache=True,
             source_path=path,
+            cache_reason=reason,
         )
 
     def fetch(
@@ -69,6 +88,13 @@ class ResilientFetcher:
         min_interval_seconds: float = 0,
     ) -> FetchResult:
         """GET *url*; on failure return last good cache. Never raises on network partition."""
+        if min_interval_seconds > 0:
+            age = self.cache_age_seconds(cache_key)
+            if age is not None and age < min_interval_seconds:
+                fresh = self._read_cache(cache_key, reason="fresh")
+                if fresh is not None:
+                    return fresh
+
         last_attempt: Exception | None = None
         backoff = 1.0
 
@@ -78,7 +104,7 @@ class ResilientFetcher:
                     resp = client.get(
                         url,
                         headers={
-                            "User-Agent": "ProjectBunker/0.1 (+offline-first; Thomas Gollogly)",
+                            "User-Agent": "ProjectBunker/0.2 (+offline-first; Thomas Gollogly)",
                         },
                     )
                     resp.raise_for_status()
@@ -90,6 +116,7 @@ class ResilientFetcher:
                         content_type=ctype,
                         from_cache=False,
                         source_path=path,
+                        cache_reason="network",
                     )
             except (httpx.HTTPError, OSError) as exc:
                 last_attempt = exc
@@ -97,7 +124,7 @@ class ResilientFetcher:
                 time.sleep(backoff)
                 backoff = min(backoff * 2, 8.0)
 
-        cached = self._read_cache(cache_key)
+        cached = self._read_cache(cache_key, reason="fallback")
         if cached is not None:
             return cached
 
