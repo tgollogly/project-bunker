@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.6] — 2026-11-14
+
+### Fixed
+
+- Serve status banner: valid `<section>` markup so headline/meta render inside full-width coloured bar (OK/DEGRADED/DOWN); `role="alert"` on DOWN.
+- Continuity snapshots: `replace_encrypted_partition_rows` on sync/seed-sample; read dedupes by `id` so re-runs do not multiply meetings/contacts.
+- Shorter incident label on banner (`Incident #…`); full id on Status page and `title` tooltip.
+- Runbooks card shows human title and description for the sample outage checklist.
+
+### Changed
+
+- README screenshots retaken from a fresh `data/continuity` tree; smoke asserts exactly one `Sam Sampleton` on home.
+
 ## [0.3.5] — 2026-11-14
 
 ### Fixed

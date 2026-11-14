@@ -48,8 +48,25 @@ class ContactCard:
 
 @dataclass
 class RunbookLink:
-    name: str
+    title: str
+    description: str
     href: str
+
+
+RUNBOOK_CATALOG: dict[str, tuple[str, str]] = {
+    "outage-checklist.md": (
+        "Outage checklist",
+        "Offline steps when Microsoft 365 is unreachable (sample).",
+    ),
+}
+
+
+def _incident_short_label(incident_id: str | None) -> tuple[str | None, str | None]:
+    if not incident_id:
+        return None, None
+    suffix = incident_id.split("-")[-1] if "-" in incident_id else incident_id[-8:]
+    short = suffix[-8:] if len(suffix) > 8 else suffix
+    return f"Incident #{short}", incident_id
 
 
 @dataclass
@@ -116,10 +133,16 @@ def probe_rows(watch: WatchState) -> list[ProbeRow]:
 def watch_banner(watch: WatchState, incident_id: str | None) -> dict[str, str]:
     cls, headline = _BANNER[watch.state]
     since = _format_london(watch.updated_at)
-    sub = f"since {since}"
-    if incident_id:
-        sub = f"{sub} · incident {incident_id}"
-    return {"banner_class": cls, "headline": headline, "subline": sub}
+    incident_label, incident_full = _incident_short_label(incident_id)
+    role = "alert" if watch.state == HealthState.DOWN else "status"
+    return {
+        "banner_class": cls,
+        "headline": headline,
+        "since_line": since,
+        "incident_label": incident_label or "",
+        "incident_full": incident_full or "",
+        "banner_role": role,
+    }
 
 
 def base_page_context(
@@ -137,6 +160,7 @@ def base_page_context(
         "watch_state": watch.state.value,
         "sample_data": has_sample_data(paths),
         "probes": probe_rows(watch),
+        "latest_incident_id": incident_id or "",
         **banner,
     }
 
@@ -211,11 +235,16 @@ def load_runbook_links(paths: ContinuityPaths) -> list[RunbookLink]:
     links: list[RunbookLink] = []
     for f in iter_encrypted_doc_files(paths.docs_root):
         rel = f.relative_to(paths.docs_root).as_posix()
-        display = rel.replace(".md.enc", "").replace(".enc", "").rsplit("/", 1)[-1]
+        file_name = rel.replace(".md.enc", "").replace(".enc", "").rsplit("/", 1)[-1]
+        title, desc = RUNBOOK_CATALOG.get(file_name, (file_name.replace("-", " ").title(), ""))
         links.append(
-            RunbookLink(name=display, href=f"/runbooks/view?path={quote(rel, safe='/')}")
+            RunbookLink(
+                title=title,
+                description=desc,
+                href=f"/runbooks/view?path={quote(rel, safe='/')}",
+            )
         )
-    return sorted(links, key=lambda x: x.name.lower())
+    return sorted(links, key=lambda x: x.title.lower())
 
 
 def freshness_rows(paths: ContinuityPaths) -> list[FreshnessRow]:

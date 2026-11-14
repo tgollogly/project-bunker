@@ -28,12 +28,21 @@
       </nav>
     </div>
   </header>
-  <p class="status-banner {{ banner_class }}" role="status">
-    <span class="status-banner__inner">
-      <h2>{{ headline }}</h2>
-      <p>{{ subline }}</p>
-    </span>
-  </p>
+  <section class="status-banner {{ banner_class }}" role="{{ banner_role }}">
+    <div class="status-banner__inner">
+      <div class="status-banner__icon" aria-hidden="true"></div>
+      <div class="status-banner__content">
+        <h2 class="status-banner__headline">{{ headline }}</h2>
+        <p class="status-banner__meta">
+          <span>since {{ since_line }}</span>
+          {% if incident_label %}
+          <span class="status-banner__sep" aria-hidden="true">·</span>
+          <span class="status-banner__incident" title="{{ incident_full }}">{{ incident_label }}</span>
+          {% endif %}
+        </p>
+      </div>
+    </div>
+  </section>
   <main id="main">
     {% block body %}{% endblock %}
   </main>

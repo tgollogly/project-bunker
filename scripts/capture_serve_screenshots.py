@@ -61,6 +61,11 @@ def main() -> None:
             env=os.environ,
         )
 
+    import shutil
+
+    cont = ROOT / "data" / "continuity"
+    if cont.is_dir():
+        shutil.rmtree(cont)
     _seed_and_outage()
     DOCS.mkdir(parents=True, exist_ok=True)
     proc = subprocess.Popen(

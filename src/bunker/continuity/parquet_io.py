@@ -17,6 +17,31 @@ def encrypted_parquet_path(base_part: Path) -> Path:
     return base_part.with_suffix(ENCRYPTED_PARQUET_SUFFIX)
 
 
+def clear_encrypted_partition(partition_root: Path) -> None:
+    """Remove encrypted parquet shards under a partition (pre-replace snapshot)."""
+    if not partition_root.is_dir():
+        return
+    for part in partition_root.rglob(f"*{ENCRYPTED_PARQUET_SUFFIX}"):
+        part.unlink(missing_ok=True)
+
+
+def replace_encrypted_partition_rows(
+    partition_root: Path,
+    rows: list[dict[str, Any]],
+    *,
+    continuity_root: Path,
+) -> Path | None:
+    """Replace the entire partition snapshot with one new encrypted part."""
+    partition_root.mkdir(parents=True, exist_ok=True)
+    clear_encrypted_partition(partition_root)
+    if not rows:
+        return None
+    from bunker.ingest.parquet_writer import hive_part_path
+
+    part = hive_part_path(partition_root)
+    return write_encrypted_parquet_rows(rows, part, continuity_root=continuity_root)
+
+
 def write_encrypted_parquet_rows(
     rows: list[dict[str, Any]],
     dest: Path,
@@ -63,6 +88,17 @@ def query_rows_from_root(
         return []
     sub = combined.select(pick)
     py_rows = sub.to_pylist()
+    if "id" in names:
+        seen_ids: set[Any] = set()
+        deduped: list[dict[str, Any]] = []
+        for row in py_rows:
+            row_id = row.get("id")
+            if row_id is not None and row_id in seen_ids:
+                continue
+            if row_id is not None:
+                seen_ids.add(row_id)
+            deduped.append(row)
+        py_rows = deduped
     py_rows.sort(key=lambda r: str(r.get(order_by) or ""))
     out: list[tuple[Any, ...]] = []
     for row in py_rows[:limit]:

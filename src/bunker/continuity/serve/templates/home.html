@@ -45,7 +45,10 @@
     {% if runbooks %}
     <ul>
       {% for r in runbooks %}
-      <li><a href="{{ r.href }}">{{ r.name }}</a></li>
+      <li>
+        <a href="{{ r.href }}"><strong>{{ r.title }}</strong></a>
+        {% if r.description %}<br><span class="muted">{{ r.description }}</span>{% endif %}
+      </li>
       {% endfor %}
     </ul>
     {% else %}

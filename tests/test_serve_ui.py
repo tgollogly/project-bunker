@@ -64,6 +64,9 @@ def test_status_banner_states(
     html = client.get("/").text
     assert phrase in html
     assert banner_class in html
+    assert "status-banner__headline" in html
+    if state == HealthState.DOWN:
+        assert 'role="alert"' in html
     assert "/static/continuity.css" in html
 
 
