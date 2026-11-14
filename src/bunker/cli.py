@@ -24,6 +24,7 @@ from bunker.continuity.status import continuity_status
 from bunker.continuity.sync_all import run_continuity_sync
 from bunker.continuity.watch.run import watch_once
 from bunker.crypto.signing import load_public_key
+from bunker.doctor import run_doctor
 from bunker.duckdb_engine import BunkerDuckDB
 from bunker.ingest.pipeline import ingest_source
 from bunker.keys import keygen
@@ -282,6 +283,21 @@ def cmd_watch(ctx: click.Context) -> None:
     paths, cfg = _continuity_cfg()
     result = watch_once(paths, cfg, graph_client=None)
     click.echo(json.dumps(result, indent=2))
+
+
+@main.command("doctor")
+@click.pass_context
+def cmd_doctor(ctx: click.Context) -> None:
+    """Verify local config, keys, Graph env, and basic reachability."""
+    paths: BunkerPaths = ctx.obj["paths"]
+    results = run_doctor(paths.root)
+    exit_code = 0
+    for row in results:
+        label = "PASS" if row.passed else "FAIL"
+        click.echo(f"{label}: {row.name} — {row.detail}")
+        if not row.passed:
+            exit_code = 1
+    sys.exit(exit_code)
 
 
 @main.command("status")
