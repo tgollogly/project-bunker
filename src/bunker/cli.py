@@ -9,8 +9,15 @@ import click
 
 from bunker.config import get_source, load_sources_config
 from bunker.continuity.config import load_continuity_config
+from bunker.continuity.encryption import rekey_tree
 from bunker.continuity.paths import ContinuityPaths
 from bunker.continuity.serve.app import create_app
+from bunker.continuity.serve.auth import (
+    ServeAuthConfig,
+    auth_configured,
+    loopback_host,
+    save_password_hash,
+)
 from bunker.continuity.status import continuity_status
 from bunker.continuity.sync_all import run_continuity_sync
 from bunker.continuity.watch.run import watch_once
@@ -194,24 +201,79 @@ def cmd_continuity_status(ctx: click.Context) -> None:
     click.echo(json.dumps(continuity_status(paths), indent=2))
 
 
+@continuity.command("rekey")
+@click.pass_context
+def cmd_continuity_rekey(ctx: click.Context) -> None:
+    paths, _cfg = _continuity_cfg()
+    try:
+        count = rekey_tree(paths.continuity_root)
+    except RuntimeError as exc:
+        click.echo(f"ERROR: {exc}", err=True)
+        sys.exit(1)
+    click.echo(json.dumps({"rekeyed_files": count}, indent=2))
+
+
+@main.group(invoke_without_command=True)
+@click.option("--host", default="127.0.0.1")
+@click.option("--port", default=8765)
+@click.option("--certfile", type=click.Path(path_type=Path), default=None)
+@click.option("--keyfile", type=click.Path(path_type=Path), default=None)
+@click.pass_context
+def serve(
+    ctx: click.Context,
+    host: str,
+    port: int,
+    certfile: Path | None,
+    keyfile: Path | None,
+) -> None:
+    """Offline continuity web UI."""
+    if ctx.invoked_subcommand is not None:
+        return
+    paths, cfg = _continuity_cfg()
+    auth_path = paths.continuity_root / "serve_auth.json"
+    if not loopback_host(host) and not auth_configured(auth_path):
+        click.echo(
+            "ERROR: non-loopback serve requires authentication — "
+            "run `bunker serve set-password` first",
+            err=True,
+        )
+        sys.exit(1)
+    if not loopback_host(host) and certfile is None:
+        click.echo(
+            "WARNING: serving on LAN without TLS (--certfile/--keyfile) "
+            "exposes traffic in cleartext",
+            err=True,
+        )
+    import uvicorn
+
+    auth = (
+        ServeAuthConfig(auth_path=auth_path, secure_cookie=certfile is not None)
+        if not loopback_host(host)
+        else None
+    )
+    app = create_app(paths, cfg, bind_host=host, auth=auth)
+    ssl_kwargs: dict = {}
+    if certfile and keyfile:
+        ssl_kwargs = {"ssl_certfile": str(certfile), "ssl_keyfile": str(keyfile)}
+    uvicorn.run(app, host=host, port=port, log_level="info", **ssl_kwargs)
+
+
+@serve.command("set-password")
+@click.password_option(confirmation_prompt=True)
+@click.pass_context
+def cmd_serve_set_password(ctx: click.Context, password: str) -> None:
+    paths, _cfg = _continuity_cfg()
+    auth_path = paths.continuity_root / "serve_auth.json"
+    save_password_hash(auth_path, password)
+    click.echo(f"Saved serve password hash at {auth_path}")
+
+
 @main.command("watch")
 @click.pass_context
 def cmd_watch(ctx: click.Context) -> None:
     paths, cfg = _continuity_cfg()
     result = watch_once(paths, cfg, graph_client=None)
     click.echo(json.dumps(result, indent=2))
-
-
-@main.command("serve")
-@click.option("--host", default="127.0.0.1")
-@click.option("--port", default=8765)
-@click.pass_context
-def cmd_serve(ctx: click.Context, host: str, port: int) -> None:
-    paths, cfg = _continuity_cfg()
-    import uvicorn
-
-    app = create_app(paths, cfg)
-    uvicorn.run(app, host=host, port=port, log_level="info")
 
 
 @main.command("status")
