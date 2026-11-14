@@ -1,0 +1,42 @@
+# Bunker Continuity — Microsoft 365 offline resilience
+# Credentials via environment only (never commit secrets).
+
+continuity:
+  data_root: data/continuity
+  calendar_horizon_days: 14
+  retention_days: 90
+
+  graph:
+    # App-only: BUNKER_GRAPH_TENANT_ID, BUNKER_GRAPH_CLIENT_ID, BUNKER_GRAPH_CLIENT_SECRET
+    # Delegated (device code): same + BUNKER_GRAPH_SCOPES
+    scopes:
+      - https://graph.microsoft.com/.default
+    calendar_user: me
+    contact_user: me
+
+  sharepoint_folders:
+    - id: runbooks
+      drive_id: "${BUNKER_SP_DRIVE_ID}"
+      path: "/Shared Documents/Runbooks"
+      description: "Incident runbooks"
+
+  watch:
+    probe_hosts:
+      - name: outlook
+        url: https://outlook.office365.com/owa/
+      - name: teams
+        url: https://teams.microsoft.com/
+    degraded_after_failures: 2
+    down_after_failures: 3
+    recovery_after_successes: 2
+
+  matrix:
+    homeserver: "${BUNKER_MATRIX_HOMESERVER:-http://127.0.0.1:8008}"
+    room_alias: "#outage:continuity.local"
+    # BUNKER_MATRIX_ACCESS_TOKEN
+
+  element_url: "${BUNKER_ELEMENT_URL:-http://127.0.0.1:8080}"
+
+  sms:
+    provider: stub  # stub | twilio
+    # Twilio: BUNKER_TWILIO_ACCOUNT_SID, BUNKER_TWILIO_AUTH_TOKEN, BUNKER_TWILIO_FROM, BUNKER_SMS_TO

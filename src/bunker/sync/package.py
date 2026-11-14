@@ -6,6 +6,7 @@ from datetime import date
 from pathlib import Path
 
 from bunker.config import load_sources_config
+from bunker.continuity.paths import ContinuityPaths
 from bunker.crypto.signing import load_private_key
 from bunker.paths import BunkerPaths
 from bunker.sync.manifest import ManifestBuilder
@@ -14,13 +15,15 @@ from bunker.sync.schema_doc import build_schema_json
 logger = logging.getLogger(__name__)
 
 
-def collect_parquet_files(parquet_root: Path) -> list[Path]:
-    if not parquet_root.is_dir():
-        return []
+def collect_parquet_files(parquet_root: Path, extra_roots: list[Path] | None = None) -> list[Path]:
     files: list[Path] = []
-    for pattern in ("**/_current.parquet", "**/ingest_date=*/part-*.parquet"):
-        files.extend(sorted(parquet_root.glob(pattern)))
-    return files
+    roots = [parquet_root, *(extra_roots or [])]
+    for root in roots:
+        if not root.is_dir():
+            continue
+        for pattern in ("**/_current.parquet", "**/ingest_date=*/part-*.parquet"):
+            files.extend(sorted(root.glob(pattern)))
+    return sorted(set(files))
 
 
 def _merge_hints_from_config(root: Path, sources: list[dict]) -> list[dict]:
@@ -56,7 +59,16 @@ def package_airgap_sync(
         shutil.rmtree(sync_dir)
     shards.mkdir(parents=True)
 
-    sources = collect_parquet_files(paths.parquet_root)
+    extra: list[Path] = []
+    continuity_cfg_path = paths.root / "config" / "continuity.yaml"
+    if continuity_cfg_path.is_file():
+        from bunker.continuity.config import load_continuity_config
+
+        cpaths = ContinuityPaths.from_config(
+            paths.root, load_continuity_config(continuity_cfg_path)
+        )
+        extra.append(cpaths.parquet_root)
+    sources = collect_parquet_files(paths.parquet_root, extra_roots=extra)
     copied: list[Path] = []
     for src in sources:
         dest = shards / src.relative_to(paths.parquet_root).as_posix().replace("/", "__")

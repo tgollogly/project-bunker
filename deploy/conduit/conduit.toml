@@ -1,0 +1,8 @@
+[global]
+server_name = "continuity.local"
+database_path = "/var/lib/matrix-conduit/"
+port = 6167
+address = "0.0.0.0"
+
+[global.tls]
+enabled = false

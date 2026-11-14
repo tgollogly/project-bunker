@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "project-bunker"
-version = "0.2.0"
+version = "0.3.0"
 description = "Resilient, offline-first DuckDB and P2P data engine for Project Bunker"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -17,6 +17,9 @@ dependencies = [
   "PyYAML>=6.0.2",
   "click>=8.1.7",
   "cryptography>=43.0.0",
+  "msal>=1.31.0",
+  "fastapi>=0.115.0",
+  "uvicorn>=0.32.0",
 ]
 
 [project.optional-dependencies]
@@ -57,5 +60,5 @@ packages = ["bunker"]
 mypy_path = "src"
 
 [[tool.mypy.overrides]]
-module = ["pyarrow.*", "zeroconf.*"]
+module = ["pyarrow.*", "zeroconf.*", "msal.*", "fastapi.*", "uvicorn.*"]
 ignore_missing_imports = true
