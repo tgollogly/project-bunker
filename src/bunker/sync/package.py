@@ -93,7 +93,7 @@ def package_airgap_sync(
             "\n".join(
                 [
                     "Project Bunker — Air-Gapped Sync Bundle",
-                    "Copyright © 2026 Thomas Gollogly. All rights reserved.",
+                    "Copyright (c) 2026 Thomas Gollogly — MIT License (see LICENSE in repository).",
                     "",
                     "Query in DuckDB:",
                     "  SELECT * FROM read_parquet('shards/*.parquet', union_by_name=true);",

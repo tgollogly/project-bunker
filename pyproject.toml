@@ -8,8 +8,12 @@ version = "0.3.2"
 description = "Resilient, offline-first DuckDB and P2P data engine for Project Bunker"
 readme = "README.md"
 requires-python = ">=3.10"
-license = "LicenseRef-Thomas-Gollogly-Proprietary"
+license = { text = "MIT" }
 authors = [{ name = "Thomas Gollogly" }]
+classifiers = [
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+]
 dependencies = [
   "duckdb>=1.1.0",
   "pyarrow>=18.0.0",

@@ -68,7 +68,10 @@ def test_login_rate_limit_persists_across_config_reload(tmp_path: Path) -> None:
     auth2 = ServeAuthConfig(auth_path=auth_path, rate_limit_path=rate_path)
     assert not auth2.check_login_allowed("198.51.100.7")
     assert rate_path.is_file()
-    assert oct(rate_path.stat().st_mode & 0o777) == oct(0o600)
+    import sys
+
+    if sys.platform != "win32":
+        assert oct(rate_path.stat().st_mode & 0o777) == oct(0o600)
 
 
 def test_rekey_completes_and_reads_with_new_key(tmp_path: Path, monkeypatch) -> None:

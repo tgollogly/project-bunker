@@ -2,6 +2,10 @@
 
 ## [0.3.2] — 2026-11-14
 
+### License
+
+- Project Bunker is now open-sourced under the **MIT License** (`LICENSE` at repository root). Contributions are accepted under MIT (see `CONTRIBUTING.md`).
+
 ### Reliability & hardening
 
 - `bunker continuity rekey` uses atomic writes per file; passphrase rekeys defer new `.fernet_salt` until all blobs are re-encrypted.

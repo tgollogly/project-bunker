@@ -11,8 +11,8 @@
 # Project Bunker
 
 [![CI](https://github.com/tgollogly/project-bunker/actions/workflows/ci.yml/badge.svg)](https://github.com/tgollogly/project-bunker/actions/workflows/ci.yml)
-![Version](https://img.shields.io/badge/version-0.3.0-informational)
-![License](https://img.shields.io/badge/License-Thomas%20Gollogly-blue)
+![Version](https://img.shields.io/badge/version-0.3.2-informational)
+![License](https://img.shields.io/badge/License-MIT-green.svg)
 
 **Bunker Continuity** (built on Project Bunker v0.3) helps a **small organisation keep working** when **Microsoft 365** (Outlook, Teams, Exchange Online) is unavailable — as in the long global outage of **12–14 November 2026**.
 
@@ -122,10 +122,8 @@ make typecheck
 
 ---
 
-## Legal & attribution
+## License
 
-**Copyright © 2026 Thomas Gollogly. All rights reserved.**
-
-This software and its associated documentation are provided **"as-is"**, without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and non-infringement. In no event shall the author, **Thomas Gollogly**, be liable for any claim, damages, or other liability arising from, out of, or in connection with the software or the use or other dealings in the software.
+Project Bunker is released under the [MIT License](LICENSE) (Copyright (c) 2026 Thomas Gollogly).
 
 Third-party open data used in default configuration remains subject to each provider’s license and attribution requirements (see `config/sources.yaml`).

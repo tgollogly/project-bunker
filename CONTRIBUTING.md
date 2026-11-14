@@ -1,6 +1,8 @@
 # Contributing to Project Bunker
 
-Copyright © 2026 Thomas Gollogly. All rights reserved.
+Copyright (c) 2026 Thomas Gollogly.
+
+By contributing to this repository, you agree that your contributions are licensed under the [MIT License](LICENSE).
 
 ## Development setup
 

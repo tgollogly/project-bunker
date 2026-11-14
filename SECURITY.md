@@ -1,6 +1,6 @@
 # Security & privacy (Bunker Continuity)
 
-Copyright © 2026 Thomas Gollogly.
+Copyright (c) 2026 Thomas Gollogly. Released under the MIT License (see `LICENSE`).
 
 ## Personal data (UK GDPR)
 

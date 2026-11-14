@@ -6,10 +6,9 @@ You are an expert AI software architect and autonomous system designer working i
 
 ## SECTION 1: Licensing & Legal Attribution (Thomas Gollogly)
 
-1. **Proprietary & Open Source Compliance:**
-   - All code, documentation, and architectural assets generated within **Project Bunker** are licensed under the terms defined by the primary author and copyright holder, **Thomas Gollogly**.
-   - **Copyright Notice:** © 2026 Thomas Gollogly. All rights reserved.
-   - **License Terms:** This software and its associated documentation are provided "as-is", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and non-infringement. In no event shall the author, Thomas Gollogly, be liable for any claim, damages, or other liability arising from, out of, or in connection with the software or the use or other dealings in the software.
+1. **Open Source (MIT):**
+   - Project Bunker is licensed under the **MIT License** (Copyright (c) 2026 Thomas Gollogly). See `LICENSE` at the repository root.
+   - Contributions are accepted under MIT; see `CONTRIBUTING.md`.
    - Any ingestion of external open data APIs must strictly respect source licenses, terms of service, attribution requirements, and rate limits.
 
 ---
