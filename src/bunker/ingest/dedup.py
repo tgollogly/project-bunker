@@ -5,6 +5,7 @@ from pathlib import Path
 import duckdb
 
 from bunker.io.atomic import atomic_write_bytes
+from bunker.sql_ident import validate_sql_identifier
 
 
 def compact_partition(partition_root: Path, primary_key: str) -> Path | None:
@@ -24,7 +25,7 @@ def compact_partition(partition_root: Path, primary_key: str) -> Path | None:
         n = row[0]
         if n == 0:
             return None
-        pk = primary_key.replace('"', '""')
+        pk = validate_sql_identifier(primary_key, label="primary key")
         glob_safe = glob.replace("'", "''")
         out = partition_root / "_current.parquet"
         tmp = partition_root / "._current.parquet.tmp"
@@ -34,7 +35,7 @@ def compact_partition(partition_root: Path, primary_key: str) -> Path | None:
               SELECT * EXCLUDE (rn) FROM (
                 SELECT *,
                   row_number() OVER (
-                    PARTITION BY "{pk}"
+                    PARTITION BY {pk}
                     ORDER BY _bunker_ingested_at DESC
                   ) AS rn
                 FROM read_parquet('{glob_safe}', union_by_name=true)

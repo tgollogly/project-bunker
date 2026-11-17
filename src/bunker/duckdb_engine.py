@@ -5,6 +5,8 @@ from typing import Any
 
 import duckdb
 
+from bunker.sql_ident import validate_sql_identifier
+
 
 class BunkerDuckDB:
     """Embedded analytics — no external database server."""
@@ -17,12 +19,16 @@ class BunkerDuckDB:
         self._con.close()
 
     def register_parquet_glob(self, name: str, glob_pattern: str) -> None:
-        safe = glob_pattern.replace("'", "''")
-        sql = (
-            f"CREATE OR REPLACE VIEW {name} AS "
-            f"SELECT * FROM read_parquet('{safe}', union_by_name=true)"
+        view = validate_sql_identifier(name, label="view name")
+        safe_glob = glob_pattern.replace("'", "''")
+        view_sql = (
+            "CREATE OR REPLACE VIEW "
+            + view
+            + " AS SELECT * FROM read_parquet('"
+            + safe_glob
+            + "', union_by_name=true)"
         )
-        self._con.execute(sql)
+        self._con.execute(view_sql)
 
     def query(self, sql: str, params: list[Any] | None = None) -> duckdb.DuckDBPyConnection:
         if params:

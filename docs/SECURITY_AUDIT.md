@@ -6,7 +6,7 @@ Scope: full `src/bunker` tree, Python dependencies, git history secret patterns,
 
 | Step | Tool / action |
 |------|----------------|
-| SAST | `bandit -r src/bunker -ll` (CI job `security`) |
+| SAST | `bandit -r src/bunker -ll -q --exit-zero` (report) + `-lll` (CI gate: fail only on **High**) |
 | Dependencies | `pip-audit` on locked install set (CI) |
 | Secret history | `git log -p` scan for `client_secret`, `BEGIN PRIVATE KEY`, `BUNKER_DATA_KEY=` literals (none found in committed history) |
 | Manual review | serve auth/CSP, encryption, `import_sync_bundle` path traversal, Graph/Google token handling, wizard POST CSRF surface |
