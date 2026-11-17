@@ -1,11 +1,27 @@
-# Bunker Continuity — Microsoft 365 offline resilience
-# Credentials via environment only (never commit secrets).
+# Bunker Continuity — keep an offline copy when the cloud goes down.
+# Secrets: OS keychain (preferred) or BUNKER_* env vars. Use /setup in the web UI on first run.
 
 continuity:
   data_root: data/continuity
   require_encryption: true
   calendar_horizon_days: 14
   retention_days: 90
+  outage_pack: true
+  outage_pack_days: 7
+
+  # Optional explicit sources (wizard writes this). When omitted, Microsoft Graph sync is implied.
+  # sync_sources:
+  #   - id: m365
+  #     type: microsoft_graph
+  #     enabled: true
+  #   - id: google
+  #     type: google_workspace
+  #     enabled: false
+  #   - id: public_cal
+  #     type: ical
+  #     enabled: false
+  #     urls:
+  #       - https://example.com/calendar.ics
 
   graph:
     # App-only: BUNKER_GRAPH_TENANT_ID, BUNKER_GRAPH_CLIENT_ID, BUNKER_GRAPH_CLIENT_SECRET

@@ -4,57 +4,25 @@ import logging
 from typing import Any
 
 from bunker.continuity.encryption import EncryptionRequiredError, ensure_encryption_key
-from bunker.continuity.graph.auth import build_token_provider
-from bunker.continuity.graph.client import HttpxGraphClient
-from bunker.continuity.graph.sync_calendars import sync_calendars
-from bunker.continuity.graph.sync_contacts import sync_contacts
-from bunker.continuity.graph.sync_documents import sync_sharepoint_folder
+from bunker.continuity.outage_pack import generate_outage_pack_pdf
 from bunker.continuity.paths import ContinuityPaths
+from bunker.continuity.sources.registry import run_configured_sources
 
 logger = logging.getLogger(__name__)
 
 
 def run_continuity_sync(paths: ContinuityPaths, cfg: dict[str, Any]) -> list[dict[str, Any]]:
-    """Sync Graph sources. On failure, leaves existing local data untouched."""
-    cont = cfg.get("continuity", {})
-    results: list[dict[str, Any]] = []
+    """Sync configured continuity sources. On failure, leaves existing local data untouched."""
     try:
         ensure_encryption_key(cfg, paths.continuity_root)
     except EncryptionRequiredError:
         raise
+    results = run_configured_sources(paths, cfg)
     try:
-        client = HttpxGraphClient(build_token_provider())
-    except RuntimeError as exc:
-        logger.error("Graph auth unavailable: %s", exc)
-        raise
-
-    graph_cfg = cont.get("graph", {})
-    user = graph_cfg.get("calendar_user", "me")
-    horizon = int(cont.get("calendar_horizon_days", 14))
-
-    try:
-        results.append(sync_calendars(paths, client, user=user, horizon_days=horizon))
-        results.append(sync_contacts(paths, client, user=graph_cfg.get("contact_user", user)))
+        cont = cfg.get("continuity", {})
+        if cont.get("outage_pack", True):
+            days = int(cont.get("outage_pack_days", 7))
+            generate_outage_pack_pdf(paths, days=days)
     except Exception as exc:
-        logger.error("Graph sync partial failure (local copies retained): %s", exc)
-        raise
-
-    for folder in cont.get("sharepoint_folders") or []:
-        drive_id = (folder.get("drive_id") or "").strip()
-        if not drive_id:
-            logger.info("Skipping folder %s — no drive_id", folder.get("id"))
-            continue
-        try:
-            results.append(
-                sync_sharepoint_folder(
-                    paths,
-                    client,
-                    folder_id=folder["id"],
-                    drive_id=drive_id,
-                    remote_path=folder.get("path", "/"),
-                )
-            )
-        except Exception as exc:
-            logger.error("Document sync failed for %s (local kept): %s", folder.get("id"), exc)
-
+        logger.warning("Outage pack PDF generation failed (sync otherwise OK): %s", exc)
     return results

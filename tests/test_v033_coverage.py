@@ -28,15 +28,16 @@ def test_sync_all_skips_folder_without_drive_id(
             "sharepoint_folders": [{"id": "runbooks", "path": "/", "drive_id": ""}],
         }
     }
-    with patch("bunker.continuity.sync_all.HttpxGraphClient") as mock_client:
+    with patch("bunker.continuity.sources.microsoft_graph.HttpxGraphClient") as mock_client:
         mock_client.return_value = FakeGraph()
-        with patch("bunker.continuity.sync_all.build_token_provider"):
-            with patch("bunker.continuity.sync_all.sync_calendars") as sc:
-                with patch("bunker.continuity.sync_all.sync_contacts") as sct:
+        with patch("bunker.continuity.sources.microsoft_graph.build_token_provider"):
+            with patch("bunker.continuity.sources.microsoft_graph.sync_calendars") as sc:
+                with patch("bunker.continuity.sources.microsoft_graph.sync_contacts") as sct:
                     sc.return_value = {"source_id": "m365_calendar"}
                     sct.return_value = {"source_id": "m365_contacts"}
-                    out = run_continuity_sync(paths, cfg)
-    assert len(out) == 2
+                    with patch("bunker.continuity.sync_all.generate_outage_pack_pdf"):
+                        out = run_continuity_sync(paths, cfg)
+    assert len(out) == 1
 
 
 def test_sync_all_raises_when_graph_auth_fails(
@@ -46,8 +47,11 @@ def test_sync_all_raises_when_graph_auth_fails(
 
     paths = continuity_paths(tmp_path)
     cfg = {"continuity": {}}
-    with patch("bunker.continuity.sync_all.HttpxGraphClient", side_effect=RuntimeError("no auth")):
-        with patch("bunker.continuity.sync_all.build_token_provider"):
+    with patch(
+        "bunker.continuity.sources.microsoft_graph.HttpxGraphClient",
+        side_effect=RuntimeError("no auth"),
+    ):
+        with patch("bunker.continuity.sources.microsoft_graph.build_token_provider"):
             with pytest.raises(RuntimeError, match="no auth"):
                 run_continuity_sync(paths, cfg)
 

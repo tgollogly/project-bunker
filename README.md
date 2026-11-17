@@ -1,46 +1,85 @@
-<p align="center"><img src="docs/images/banner.png" alt="Project Bunker: keep working when the cloud goes down. Free and open source, MIT License." width="100%"></p>
+<p align="center"><img src="docs/images/banner.png" alt="Project Bunker: keep an offline copy when the cloud goes down. Free and open source, MIT License." width="100%"></p>
 
 # Project Bunker
 
 [![CI](https://github.com/tgollogly/project-bunker/actions/workflows/ci.yml/badge.svg)](https://github.com/tgollogly/project-bunker/actions/workflows/ci.yml)
-![Version](https://img.shields.io/badge/version-0.3.6-informational)
+![Version](https://img.shields.io/badge/version-0.4.0-informational)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 
-_Project Bunker is an independent, free, open-source project. It is not affiliated with, endorsed by, or sponsored by Microsoft, The Bunker, Bunker Technical Solutions, or any other company. Microsoft 365, Outlook, Teams and SharePoint are trademarks of Microsoft Corporation._
-
-```
- ██████╗ ██╗   ██╗███╗   ██╗██╗  ██╗███████╗██████╗
- ██╔══██╗██║   ██║████╗  ██║██║ ██╔╝██╔════╝██╔══██╗
- ██████╔╝██║   ██║██╔██╗ ██║█████╔╝ █████╗  ██████╔╝
- ██╔══██╗██║   ██║██║╚██╗██║██╔═██╗ ██╔══╝  ██╔══██╗
- ██████╔╝╚██████╔╝██║ ╚████║██║  ██╗███████╗████████╗
- ╚═════╝  ╚═════╝ ╚═╝  ╚═══╝╚═╝  ╚═╝╚══════╝╚═════╝
-   Bunker Continuity — when Microsoft 365 goes dark
-```
-
-**Bunker Continuity** (built on Project Bunker v0.3) helps a **small organisation keep working** when **Microsoft 365** (Outlook, Teams, Exchange Online) is unavailable — as in the long global outage of **12–14 November 2026**.
-
-It does **not** replace email or Teams. It keeps **schedules, contacts, runbook documents, backup chat, and signed offline bundles** on premises.
+**Keep an offline copy of what you need when the cloud goes down.**  
+Bunker Continuity works with **Microsoft cloud (Graph API)**, **Google Workspace**, **iCal (.ics)**, **CSV/vCard contacts**, and **local document folders** — for compatibility only. Not affiliated with Microsoft, Google, or any cloud provider.
 
 ---
 
-## Why this exists
+## What it does (plain English)
 
-When M365 is down for 24+ hours:
+- **Snapshots** your calendar, contacts, and important files to **encrypted storage on your computer**.
+- **Shows them** in a simple **offline web page** (`bunker serve`) — meetings, contacts, runbooks.
+- **Watches** whether major cloud endpoints look up or down (optional).
+- **Prints an outage pack** (PDF) after each sync — next 7 days of meetings, contacts, and document list.
+- **Optional** open-data demo engine (USGS / Open-Meteo) lives in `examples/open-data/` for developers.
 
-- Staff still need **today’s meetings** and **who to call**.
-- Incident leads need **runbooks** without SharePoint.
-- You need a **fallback channel** that does not depend on Microsoft’s status page loading.
+It does **not** replace email, Teams, or Slack. It is a **local safety copy** for outages and drills.
 
-Bunker:
+---
 
-1. **Snapshots** Graph data (calendar 14d, contacts, configured SharePoint folders) into **local Parquet + files**.
-2. **`bunker watch`** tracks reachability (Outlook/Teams URLs + optional Graph service health) with **OK / DEGRADED / DOWN** and hysteresis.
-3. On **DOWN**, writes a **local incident** and alerts **Matrix** (optional) + **SMS** (stub/Twilio) + **HMAC-signed LAN UDP**.
-4. **`bunker serve`** — offline FastAPI web UI on loopback (Jinja2 autoescape, no CDN). Use `bunker serve set-password` before binding to a LAN address.
-5. **`bunker sync-package`** — **Ed25519-signed** bundles for USB/LAN site transfer (see [Core Bunker engine](docs/core-engine.md)).
+## Install (~10 minutes)
 
-See also [Testing on an M365 Developer tenant](docs/real-tenant-test.md).
+### Linux or macOS (recommended)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/tgollogly/project-bunker/main/scripts/install-bunker.sh | bash
+```
+
+Or:
+
+```bash
+pipx install git+https://github.com/tgollogly/project-bunker.git
+```
+
+### Windows
+
+1. Download the **`bunker-windows-portable`** artifact from the latest [GitHub Actions CI](https://github.com/tgollogly/project-bunker/actions) run (`windows-portable` job).
+2. Unzip and run `bunker.exe` from a folder that includes `config/`.
+3. Or: `pip install git+https://github.com/tgollogly/project-bunker.git` if you use Python 3.10+.
+
+### Docker (optional)
+
+```bash
+make init
+bunker serve --port 8765
+```
+
+---
+
+## First run (no environment variables required)
+
+1. **Try sample data** (no cloud account):
+
+```bash
+bunker continuity seed-sample
+bunker serve --port 8765
+```
+
+Open `http://127.0.0.1:8765` and click **Setup** to walk through sources, passwords, and sync schedule.
+
+2. **Set an encryption passphrase** in Setup (stored in your **OS keychain** when available, else `BUNKER_DATA_KEY`).
+3. **Choose sources** — Microsoft Graph, Google, iCal URL, contact files, local folder.
+4. **Sign in** — register your own OAuth apps (see below); the wizard stores client IDs and tokens in the keychain.
+5. **Run a sync:** `bunker continuity sync`
+6. **Background sync:** `bunker continuity schedule-install --hours 6`
+
+---
+
+## Cloud sign-in (you register the apps)
+
+| Provider | What you create | Scopes (read-only) |
+|----------|-----------------|-------------------|
+| Microsoft (Entra) | App registration + admin consent | `Calendars.Read`, `Contacts.Read`, optional `Files.Read` / `ServiceHealth.Read` |
+| Google Cloud | OAuth desktop client | Calendar, People (contacts), Drive read |
+
+Use **device code** or **refresh tokens**; Bunker never ships a shared production client secret in the repo.  
+Details: [Testing on an M365 Developer tenant](docs/real-tenant-test.md) (same pattern for any tenant).
 
 ---
 
@@ -48,92 +87,53 @@ See also [Testing on an M365 Developer tenant](docs/real-tenant-test.md).
 
 | Claim | Reality |
 |-------|---------|
-| Replaces Outlook/Teams | **No** — backup visibility + chat only |
-| Full P2P mesh | **No** — signed folder handoff + `import-sync` |
-| Matrix “production” | **Docker profile** for Conduit + Element — you must configure users/rooms |
-| Graph sync | Requires **Azure app** or token via env; tests use **mocks only** |
+| Replaces Outlook/Teams/Gmail | **No** — backup visibility only |
+| Works with zero setup | **Sample data yes**; real sync needs your OAuth apps or files |
+| Full P2P mesh | **No** — signed USB/LAN bundles (`bunker sync-package`) |
 | Email archive | **Not implemented** |
-
-See [SECURITY.md](SECURITY.md) for UK GDPR and Graph permissions.
-
----
-
-## Microsoft Graph permissions (least privilege)
-
-| Permission | Purpose |
-|------------|---------|
-| `Calendars.Read` | Calendar view snapshot |
-| `Contacts.Read` | Contact / address list |
-| `Files.Read.All` or `Sites.Read.All` | Configured runbook libraries |
-| `ServiceHealth.Read.All` | Optional health signal for `bunker watch` |
-
-Use a dedicated app registration with admin consent; store secrets in environment variables only.
+| Shared OAuth app in the box | **No** — you register your own (owner action) |
 
 ---
 
-## Environment variables
+## Commands you will use
 
-| Variable | Purpose |
-|----------|---------|
-| `BUNKER_GRAPH_TENANT_ID`, `CLIENT_ID`, `CLIENT_SECRET` | App-only Graph |
-| `BUNKER_GRAPH_ACCESS_TOKEN` | Tests / delegated token (no MSAL) |
-| `BUNKER_DATA_KEY` | Fernet encrypt continuity Parquet/docs/meta (44-char key or passphrase + salt) |
-| `BUNKER_DATA_KEY_NEW` | New key for `bunker continuity rekey` |
-| `BUNKER_MATRIX_ACCESS_TOKEN`, `BUNKER_MATRIX_HOMESERVER` | Matrix alerts |
-| `BUNKER_MESH_KEY` | HMAC LAN UDP alerts (16+ bytes) |
-| Twilio suite | `BUNKER_TWILIO_*`, `BUNKER_SMS_TO` |
-| `BUNKER_SP_DRIVE_ID` | SharePoint runbook drive in `config/continuity.yaml` |
+| Command | Purpose |
+|---------|---------|
+| `bunker continuity sync` | Pull latest from configured sources |
+| `bunker continuity status` | Show last sync times |
+| `bunker serve` | Offline web UI |
+| `bunker continuity outage-pack` | Regenerate PDF |
+| `bunker continuity schedule-install` | systemd / launchd / Task Scheduler |
+| `bunker --config examples/open-data/sources.yaml ingest-all` | Optional open-data demo |
 
----
-
-## Quick start
-
-```bash
-make init
-bunker keygen
-export BUNKER_GRAPH_ACCESS_TOKEN=...   # or app-only Graph env vars
-bunker doctor
-bunker continuity sync
-bunker continuity status
-bunker watch
-bunker serve --port 8765
-```
-
-### Try it in 2 minutes with sample data (no Microsoft account needed)
-
-```bash
-make init
-export BUNKER_DATA_KEY=0123456789abcdef0123456789abcdef   # demo Fernet key
-bunker keygen
-bunker continuity seed-sample    # fictional calendar, contacts, runbook
-bunker continuity status         # should list m365_calendar, contacts, docs
-bash scripts/continuity-outage-demo.sh
-bunker serve --port 8765           # open http://127.0.0.1:8765 — watch DOWN + Sam Sampleton
-```
-
-### What it looks like
-
-*(sample data, simulated outage)*
-
-| Desktop (1280×800) | Mobile (390×844) |
-|-------------------|------------------|
-| ![Bunker Continuity dashboard](docs/images/screenshot-dashboard.png) | ![Bunker Continuity mobile](docs/images/screenshot-mobile.png) |
-
-**Outage demo (simulated probes):**
-
-```bash
-bash scripts/continuity-outage-demo.sh
-```
-
-**Matrix (optional):**
-
-```bash
-docker compose -f docker-compose.continuity.yml --profile matrix up -d
-```
+Core DuckDB / P2P engine: [docs/core-engine.md](docs/core-engine.md).
 
 ---
 
-The open-data ingest engine (DuckDB, signed sync bundles) is documented in [docs/core-engine.md](docs/core-engine.md).
+## FAQ
+
+**Do I need to set environment variables?**  
+No for normal use after Setup. Advanced users can still set `BUNKER_*` vars (see [SECURITY.md](SECURITY.md)).
+
+**Is my data encrypted?**  
+Yes, when `require_encryption` is true (default). Parquet and documents use Fernet at rest.
+
+**Can I use this without Microsoft?**  
+Yes — enable Google, iCal, CSV/vCard, and local folders only in Setup or `config/continuity.yaml` `sync_sources`.
+
+**Where is the PDF?**  
+`data/continuity/outage_pack.pdf` and **Download** link in the web UI footer.
+
+---
+
+## Troubleshooting
+
+| Problem | Try |
+|---------|-----|
+| Sync fails “Graph auth unavailable” | Complete Setup or set keychain secrets; check tenant/client ID |
+| Blank calendar | Run `bunker continuity sync`; check source enabled in `sync_sources` |
+| `serve` asks for password on LAN | Run `bunker serve set-password` first |
+| Coverage / tests fail after env exports | Tests ignore stray `BUNKER_*` in shell (see CONTRIBUTING) |
 
 ---
 
@@ -145,16 +145,17 @@ make lint
 make typecheck
 ```
 
+Security review: [docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md).
+
 ---
 
 ## Trademarks and affiliation
 
-Project Bunker is an independent, free, open-source project. It is not affiliated with, endorsed by, or sponsored by Microsoft, The Bunker, Bunker Technical Solutions, or any other company. Microsoft 365, Outlook, Teams and SharePoint are trademarks of Microsoft Corporation.
+Project Bunker is an independent, free, open-source project (MIT License, Copyright (c) 2026 Thomas Gollogly). It is **not affiliated with, endorsed by, or sponsored by** Microsoft Corporation, Google LLC, The Bunker, Bunker Technical Solutions, or any other company.  
+Microsoft, Microsoft 365, Outlook, Teams, SharePoint, Google, Google Workspace, and Gmail are **trademarks of their respective owners**, used here only to describe compatibility.
 
 ---
 
 ## License
 
-Project Bunker is released under the [MIT License](LICENSE) (Copyright (c) 2026 Thomas Gollogly).
-
-Third-party open data used in default configuration remains subject to each provider’s license and attribution requirements (see `config/sources.yaml`).
+MIT — see [LICENSE](LICENSE). Software is provided **“as is”, without warranty of any kind**.

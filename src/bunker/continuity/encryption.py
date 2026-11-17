@@ -11,6 +11,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 
 from bunker.io.atomic import atomic_write_bytes
+from bunker.secrets.store import get_secret
 
 _ENV_KEY: Final = "BUNKER_DATA_KEY"
 _ENV_NEW_KEY: Final = "BUNKER_DATA_KEY_NEW"
@@ -75,8 +76,12 @@ def fernet_from_raw(raw: str, *, continuity_root: Path, salt: bytes | None = Non
     return Fernet(_fernet_bytes_from_passphrase(raw, salt))
 
 
+def _data_key_material() -> str:
+    return (get_secret("data_key") or os.environ.get(_ENV_KEY, "")).strip()
+
+
 def fernet_from_material(*, continuity_root: Path | None = None) -> Fernet | None:
-    raw = os.environ.get(_ENV_KEY, "").strip()
+    raw = _data_key_material()
     if not raw:
         return None
     if continuity_root is None and not _is_raw_fernet_key(raw):
@@ -91,7 +96,8 @@ def require_encryption_config(cfg: dict) -> bool:
 
 
 def encryption_available(continuity_root: Path) -> bool:
-    return os.environ.get(_ENV_KEY, "").strip() != ""
+    _ = continuity_root
+    return _data_key_material() != ""
 
 
 def ensure_encryption_key(cfg: dict, continuity_root: Path) -> None:

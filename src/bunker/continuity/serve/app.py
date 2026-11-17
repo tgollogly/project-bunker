@@ -5,14 +5,16 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from bunker.continuity.parquet_io import query_rows_from_root
+from bunker.continuity.aggregate import query_all_calendar_rows
+from bunker.continuity.outage_pack import outage_pack_status
 from bunker.continuity.paths import ContinuityPaths
 from bunker.continuity.serve.auth import ServeAuthConfig, serve_auth_middleware
 from bunker.continuity.serve.security import SECURITY_HEADERS, safe_element_url
+from bunker.continuity.serve.setup_routes import register_setup_routes
 from bunker.continuity.serve.view_context import (
     base_page_context,
     freshness_rows,
@@ -22,6 +24,7 @@ from bunker.continuity.serve.view_context import (
     runbook_plaintext,
     sync_table_rows,
 )
+from bunker.continuity.setup.state import load_setup_state
 from bunker.continuity.status import continuity_status
 from bunker.continuity.watch.health import load_watch_state
 
@@ -73,6 +76,8 @@ def create_app(
         }
         return templates.TemplateResponse(request, name, ctx)
 
+    register_setup_routes(app, paths, templates, _render)
+
     @app.get("/", response_class=HTMLResponse)
     def home(request: Request) -> HTMLResponse:
         return _render(
@@ -98,12 +103,10 @@ def create_app(
 
     @app.get("/calendar", response_class=HTMLResponse)
     def calendar_page(request: Request) -> HTMLResponse:
-        raw_rows = query_rows_from_root(
-            paths.parquet_root / "m365" / "calendar",
-            ["subject", "start", "end", "location"],
-            order_by="start",
+        raw_rows = query_all_calendar_rows(
+            paths,
+            columns=["subject", "start", "end", "location"],
             limit=100,
-            continuity_root=continuity_root,
         )
         rows = [
             CalendarRow(
@@ -152,6 +155,13 @@ def create_app(
     def docs_redirect() -> RedirectResponse:
         return RedirectResponse(url="/runbooks", status_code=302)
 
+    @app.get("/outage-pack.pdf")
+    def outage_pack_download() -> FileResponse:
+        pack = paths.continuity_root / "outage_pack.pdf"
+        if not pack.is_file():
+            raise HTTPException(status_code=404, detail="outage pack not generated yet")
+        return FileResponse(pack, media_type="application/pdf", filename="outage_pack.pdf")
+
     if auth is not None:
 
         @app.post("/login")
@@ -176,6 +186,8 @@ def create_app(
             {
                 "watch": watch.state.value,
                 "sync": continuity_status(paths),
+                "setup": load_setup_state(continuity_root).__dict__,
+                "outage_pack": outage_pack_status(paths),
             }
         )
 
