@@ -39,7 +39,7 @@ pipx install git+https://github.com/tgollogly/project-bunker.git
 
 ### Windows
 
-1. Download the **`bunker-windows-portable`** artifact from the latest [GitHub Actions CI](https://github.com/tgollogly/project-bunker/actions) run (`windows-portable` job).
+1. Download **`bunker-windows-portable-*.zip`** from the [latest GitHub Release](https://github.com/tgollogly/project-bunker/releases/latest) (or the `windows-portable` CI artifact on `main` between releases).
 2. Unzip and run `bunker.exe` from a folder that includes `config/`.
 3. Or: `pip install git+https://github.com/tgollogly/project-bunker.git` if you use Python 3.10+.
 
@@ -134,6 +134,36 @@ Yes — enable Google, iCal, CSV/vCard, and local folders only in Setup or `conf
 | Blank calendar | Run `bunker continuity sync`; check source enabled in `sync_sources` |
 | `serve` asks for password on LAN | Run `bunker serve set-password` first |
 | Coverage / tests fail after env exports | Tests ignore stray `BUNKER_*` in shell (see CONTRIBUTING) |
+
+---
+
+## Verify your download
+
+Official release assets include a checksum manifest and GitHub build provenance attestations.
+
+### SHA256 checksum
+
+**Windows (PowerShell / cmd):**
+
+```text
+certutil -hashfile FILE SHA256
+```
+
+Compare the output with the matching line in `SHA256SUMS.txt` from the release.
+
+**macOS / Linux:**
+
+```bash
+shasum -a 256 -c SHA256SUMS.txt
+```
+
+### Build provenance
+
+With the [GitHub CLI](https://cli.github.com/) installed, verify each downloaded release file (wheel, sdist, zip):
+
+```bash
+gh attestation verify FILE --repo tgollogly/project-bunker
+```
 
 ---
 
