@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from bunker import __version__
 from bunker.continuity.aggregate import query_all_calendar_rows, query_all_contact_rows
 from bunker.continuity.paths import ContinuityPaths
 from bunker.continuity.status import continuity_status
@@ -161,6 +162,7 @@ def base_page_context(
         "sample_data": has_sample_data(paths),
         "probes": probe_rows(watch),
         "latest_incident_id": incident_id or "",
+        "bunker_version": __version__,
         **banner,
     }
 

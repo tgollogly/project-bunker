@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from typing import Any
 
@@ -11,6 +12,8 @@ from bunker.continuity.schedule import ScheduleSpec, install_schedule
 from bunker.continuity.serve.auth import save_password_hash
 from bunker.continuity.setup.state import SetupState, load_setup_state, save_setup_state
 from bunker.secrets.store import set_secret
+
+logger = logging.getLogger(__name__)
 
 
 def register_setup_routes(
@@ -46,6 +49,7 @@ def register_setup_routes(
         graph_client_id: str = Form(""),
         graph_client_secret: str = Form(""),
         google_client_id: str = Form(""),
+        google_client_secret: str = Form(""),
         google_refresh_token: str = Form(""),
         ical_urls: str = Form(""),
         contacts_paths: str = Form(""),
@@ -68,6 +72,8 @@ def register_setup_routes(
             set_secret("graph.client_secret", graph_client_secret)
         if google_client_id:
             set_secret("google.client_id", google_client_id)
+        if google_client_secret:
+            set_secret("google.client_secret", google_client_secret)
         if google_refresh_token:
             set_secret("google.refresh_token", google_refresh_token)
         if serve_password:
@@ -82,8 +88,8 @@ def register_setup_routes(
         save_setup_state(continuity_root, state)
         try:
             install_schedule(ScheduleSpec(interval_hours=interval_hours))
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning("Scheduled sync install skipped during setup: %s", exc)
         return RedirectResponse(url="/", status_code=303)
 
 

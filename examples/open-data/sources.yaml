@@ -20,7 +20,7 @@ sources:
     parquet_partition: usgs/earthquakes/day
 
   - id: open_meteo_demo
-    name: Open-Meteo forecast sample (London)
+    name: Open-Meteo forecast sample (demo coordinates)
     url: https://api.open-meteo.com/v1/forecast?latitude=51.5072&longitude=-0.1276&hourly=temperature_2m&forecast_days=1
     format: json
     parser: open_meteo_demo
@@ -29,4 +29,4 @@ sources:
     license_note: "Open-Meteo API — see https://open-meteo.com/en/terms"
     min_fetch_interval_seconds: 300
     duckdb_table: weather_hourly
-    parquet_partition: open_meteo/london/hourly
+    parquet_partition: open_meteo/demo/hourly

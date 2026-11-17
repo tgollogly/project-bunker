@@ -1,4 +1,4 @@
-# Security audit — v0.4.0 (2026-11-17)
+# Security audit — v0.4.2 (2026-11-17)
 
 Scope: full `src/bunker` tree, Python dependencies, git history secret patterns, offline web UI, OAuth/token storage, sync bundle import, LAN UDP HMAC, and file permissions.
 
@@ -57,3 +57,27 @@ Scope: full `src/bunker` tree, Python dependencies, git history secret patterns,
 3. **Optional public OAuth client** — if the project ships a shared client ID later, rotate client secret on a schedule.
 
 Copyright (c) 2026 Thomas Gollogly. MIT License.
+
+---
+
+## Re-audit — v0.4.2 (2026-11-17)
+
+Full-repo pass over `src/`, `tests/`, `scripts/`, `.github/workflows/ci.yml`, `Dockerfile`, and `Makefile`.
+
+| Finding | Severity | Resolution in v0.4.2 |
+|---------|----------|------------------------|
+| `import_sync_bundle` copied every shard into every `merge_hints` partition | High | Shard↔partition matching via `sync/partition_paths.py`; partition path validation |
+| `target_partition` path traversal if manifest hints malicious | High | `validate_relative_partition` + resolved path under `parquet_root` |
+| Continuity registry `raise` after first source failure contradicted “local copies kept” | Medium | Per-source `ok` flag; CLI exits 1 when any source fails |
+| Setup wizard missing Google client secret field | Medium | `google_client_secret` in form + keychain |
+| `doctor` ignored keychain-only secrets | Medium | `get_secret()` / `inject_secrets_into_environ()` in encryption and Graph checks |
+| `bunker query` accepted arbitrary SQL | Medium | Gate to read-only statement prefixes |
+| systemd/launchd shell command injection via cwd | Medium | `shlex.quote` in schedule install helpers |
+| `/healthz` whitelisted but unregistered | Low | `GET /healthz` added |
+| Version drift (`__init__` 0.3.6 vs pyproject) | Low | `importlib.metadata` + CLI `--version` + UI footer |
+| `seed-sample` without encryption key (README first-run) | Low | `ensure_local_demo_data_key()` |
+| Open-data example place name in label | Low | Generic “demo coordinates” label |
+
+**SAST (local):** `bandit -ll --exit-zero` + `bandit -lll` (fail on High); `pip-audit` on dev extras.
+
+**Residual (accepted):** Setup POST CSRF on loopback (documented); UDP mesh HMAC without confidentiality; iCal URL SSRF from operator-supplied config; rekey mid-crash mixed ciphertext (document in SECURITY.md — operator should re-run `continuity rekey`).

@@ -7,7 +7,7 @@ import shutil
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from bunker.continuity.encryption import encrypt_at_rest
+from bunker.continuity.encryption import encrypt_at_rest, ensure_local_demo_data_key
 from bunker.continuity.meta import write_sync_meta
 from bunker.continuity.parquet_io import clear_encrypted_partition, replace_encrypted_partition_rows
 from bunker.continuity.paths import ContinuityPaths
@@ -31,8 +31,13 @@ def seed_sample_data(paths: ContinuityPaths) -> dict[str, Any]:
     """
     Populate calendar, contacts, and a runbook document with fictional demo data.
     Uses encryption when BUNKER_DATA_KEY is set (required if continuity.require_encryption).
+    When no key is configured yet, generates a local demo key (keychain or session env).
     """
     paths.ensure()
+    if ensure_local_demo_data_key(paths.continuity_root):
+        logger.info(
+            "Generated a local demo encryption key for sample data (OS keychain or session env)"
+        )
     clear_encrypted_partition(paths.parquet_root / "m365" / "calendar")
     clear_encrypted_partition(paths.parquet_root / "m365" / "contacts")
     runbook_dir = paths.docs_root / SAMPLE_RUNBOOK_FOLDER

@@ -78,6 +78,10 @@ def create_app(
 
     register_setup_routes(app, paths, templates, _render)
 
+    @app.get("/healthz")
+    def healthz() -> dict[str, str]:
+        return {"status": "ok"}
+
     @app.get("/", response_class=HTMLResponse)
     def home(request: Request) -> HTMLResponse:
         return _render(

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import shutil
 from pathlib import Path
 
@@ -8,7 +9,10 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
 from bunker.ingest.dedup import compact_partition
 from bunker.paths import BunkerPaths
+from bunker.sync.partition_paths import select_shards_for_hint, validate_relative_partition
 from bunker.sync.verify import verify_sync_folder
+
+logger = logging.getLogger(__name__)
 
 
 def import_sync_bundle(
@@ -34,18 +38,30 @@ def import_sync_bundle(
         shutil.copy2(shard, archive_root / f"part-{shard.name}")
         copied += 1
 
+    parquet_resolved = paths.parquet_root.resolve()
     currents: list[str] = []
     for hint in manifest.get("merge_hints") or []:
         pk = hint.get("primary_key")
         partition = hint.get("target_partition")
         if not pk or not partition:
             continue
-        part_root = paths.parquet_root / partition
+        rel_part = validate_relative_partition(str(partition))
+        part_root = paths.parquet_root / rel_part
+        if not part_root.resolve().is_relative_to(parquet_resolved):
+            raise ValueError(f"target_partition escapes data root: {partition!r}")
+        matching = select_shards_for_hint(shard_files, hint)
+        if not matching:
+            logger.warning(
+                "No bundle shards matched target_partition %r (source_id=%s)",
+                partition,
+                hint.get("source_id"),
+            )
+            continue
         ingest_root = part_root / "ingest_date=import"
         ingest_root.mkdir(parents=True, exist_ok=True)
-        for shard in shard_files:
+        for shard in matching:
             shutil.copy2(shard, ingest_root / f"part-{shard.name}")
-        cur = compact_partition(part_root, pk)
+        cur = compact_partition(part_root, str(pk))
         if cur:
             currents.append(str(cur))
 
