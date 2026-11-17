@@ -2,10 +2,13 @@
 
 ## [0.4.2] — 2026-11-17
 
+Ships the **v0.4.x** line merged via PRs [#14](https://github.com/tgollogly/project-bunker/pull/14)–[#20](https://github.com/tgollogly/project-bunker/pull/20): universal offline continuity kit ([#14](https://github.com/tgollogly/project-bunker/pull/14)), CI security / DuckDB hardening ([#15](https://github.com/tgollogly/project-bunker/pull/15)), consistency and security audit ([#16](https://github.com/tgollogly/project-bunker/pull/16)), README hero artwork ([#18](https://github.com/tgollogly/project-bunker/pull/18), [#19](https://github.com/tgollogly/project-bunker/pull/19), [#20](https://github.com/tgollogly/project-bunker/pull/20)).
+
 - **Version alignment** — `__version__`, CLI `--version`, and serve UI footer match `pyproject.toml`.
 - **First-run demo** — `seed-sample` auto-provisions a local demo encryption key when none is configured.
 - **`schedule-install --dry-run`** — preview systemd/launchd/schtasks targets without installing.
 - **Docs** — README badge, `SECURITY.md`, and `SECURITY_AUDIT.md` on v0.4.2; open-data sample drops place-name label.
+- **Release** — tag-triggered GitHub Release with sdist, wheel, Windows portable zip, source zip, `SHA256SUMS.txt`, and build provenance attestations.
 
 ## [0.4.1] — 2026-11-17
 
