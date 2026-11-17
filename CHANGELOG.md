@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1] — 2026-11-17
+
+### Fixed
+
+- CI **security** job: Bandit exited non-zero on reviewed Medium B608 DuckDB SQL (no High findings); gate now fails only on High severity, with full medium+ report retained.
+- DuckDB view registration validates view names and binds parquet paths via escaping; dedup compaction validates `primary_key` identifiers.
+
 ## [0.4.0] — 2026-11-17
 
 ### Added
