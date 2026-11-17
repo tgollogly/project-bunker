@@ -5,6 +5,7 @@
 [![CI](https://github.com/tgollogly/project-bunker/actions/workflows/ci.yml/badge.svg)](https://github.com/tgollogly/project-bunker/actions/workflows/ci.yml)
 ![Version](https://img.shields.io/badge/version-0.4.2-informational)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
+[![Signed releases](https://img.shields.io/badge/releases-signed%20%26%20verifiable-brightgreen)](#verify-your-download)
 
 **Keep an offline copy of what you need when the cloud goes down.**  
 Bunker Continuity works with **Microsoft cloud (Graph API)**, **Google Workspace**, **iCal (.ics)**, **CSV/vCard contacts**, and **local document folders** — for compatibility only. Not affiliated with Microsoft, Google, or any cloud provider.
