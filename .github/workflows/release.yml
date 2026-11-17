@@ -107,8 +107,18 @@ jobs:
           } > release-notes-combined.md
           mv release-notes-combined.md release-notes.md
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@7b4da11513bf3f43f9999e90eabced41ab8bb048 # v2.2.0
-        with:
-          body_path: release-notes.md
-          files: dist/*
-          fail_on_unmatched_files: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          assets=(dist/*.whl dist/*.tar.gz dist/*.zip dist/SHA256SUMS.txt)
+          if [ "${#assets[@]}" -eq 0 ]; then
+            echo "No release assets in dist/" >&2
+            exit 1
+          fi
+          gh release create "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file release-notes.md \
+            "${assets[@]}"
