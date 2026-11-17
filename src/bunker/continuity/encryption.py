@@ -11,7 +11,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 
 from bunker.io.atomic import atomic_write_bytes
-from bunker.secrets.store import get_secret
+from bunker.secrets.store import get_secret, set_secret
 
 _ENV_KEY: Final = "BUNKER_DATA_KEY"
 _ENV_NEW_KEY: Final = "BUNKER_DATA_KEY_NEW"
@@ -98,6 +98,19 @@ def require_encryption_config(cfg: dict) -> bool:
 def encryption_available(continuity_root: Path) -> bool:
     _ = continuity_root
     return _data_key_material() != ""
+
+
+def ensure_local_demo_data_key(continuity_root: Path) -> bool:
+    """
+    When no encryption key is configured, generate one for local sample/demo use.
+    Stores in the OS keychain when available, else the current process environment.
+    """
+    if encryption_available(continuity_root):
+        return False
+    key = Fernet.generate_key().decode("ascii")
+    set_secret("data_key", key, prefer_keyring=False)
+    continuity_root.mkdir(parents=True, exist_ok=True)
+    return True
 
 
 def ensure_encryption_key(cfg: dict, continuity_root: Path) -> None:

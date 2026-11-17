@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import platform
+import shlex
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -15,6 +16,49 @@ class ScheduleSpec:
 
 def _project_root() -> Path:
     return Path.cwd()
+
+
+def _sync_exec_cmd(spec: ScheduleSpec, root: Path) -> str:
+    return (
+        f"cd {shlex.quote(str(root))} && "
+        f"{shlex.quote(spec.bunker_cmd)} continuity sync"
+    )
+
+
+def plan_schedule(spec: ScheduleSpec) -> dict[str, str]:
+    """Describe what install_schedule would write, without touching the system."""
+    system = platform.system()
+    root = _project_root()
+    cmd = _sync_exec_cmd(spec, root)
+    if system == "Linux":
+        home = Path.home()
+        unit_dir = home / ".config" / "systemd" / "user"
+        return {
+            "platform": "linux",
+            "dry_run": "true",
+            "would_write_service": str(unit_dir / "bunker-continuity-sync.service"),
+            "would_write_timer": str(unit_dir / "bunker-continuity-sync.timer"),
+            "interval_hours": str(spec.interval_hours),
+            "exec": cmd,
+        }
+    if system == "Darwin":
+        plist = Path.home() / "Library" / "LaunchAgents" / "com.projectbunker.continuity-sync.plist"
+        return {
+            "platform": "darwin",
+            "dry_run": "true",
+            "would_write_plist": str(plist),
+            "interval_hours": str(spec.interval_hours),
+            "exec": cmd,
+        }
+    if system == "Windows":
+        return {
+            "platform": "windows",
+            "dry_run": "true",
+            "would_create_task": "BunkerContinuitySync",
+            "interval_hours": str(spec.interval_hours),
+            "exec": cmd,
+        }
+    return {"platform": system, "dry_run": "true", "status": "unsupported"}
 
 
 def install_schedule(spec: ScheduleSpec) -> dict[str, str]:
@@ -50,7 +94,7 @@ def _install_systemd_user(spec: ScheduleSpec) -> dict[str, str]:
     service = unit_dir / "bunker-continuity-sync.service"
     timer = unit_dir / "bunker-continuity-sync.timer"
     root = _project_root()
-    cmd = f"cd {root} && {spec.bunker_cmd} continuity sync"
+    cmd = _sync_exec_cmd(spec, root)
     service.write_text(
         f"""[Unit]
 Description=Bunker Continuity sync
@@ -98,6 +142,7 @@ def _install_launchd(spec: ScheduleSpec) -> dict[str, str]:
     plist.parent.mkdir(parents=True, exist_ok=True)
     root = _project_root()
     interval = spec.interval_hours * 3600
+    shell_cmd = _sync_exec_cmd(spec, root)
     plist.write_text(
         f"""<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -107,7 +152,7 @@ def _install_launchd(spec: ScheduleSpec) -> dict[str, str]:
   <key>ProgramArguments</key>
   <array>
     <string>/bin/sh</string><string>-lc</string>
-    <string>cd {root} &amp;&amp; {spec.bunker_cmd} continuity sync</string>
+    <string>{shell_cmd}</string>
   </array>
   <key>StartInterval</key><integer>{interval}</integer>
   <key>RunAtLoad</key><true/>
@@ -128,7 +173,7 @@ def _uninstall_launchd() -> dict[str, str]:
 
 def _install_schtasks(spec: ScheduleSpec) -> dict[str, str]:
     root = _project_root()
-    cmd = f'cd /d "{root}" && {spec.bunker_cmd} continuity sync'
+    cmd = _sync_exec_cmd(spec, root)
     subprocess.run(
         [
             "schtasks",

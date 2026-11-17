@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.2] — 2026-11-17
+
+- **Version alignment** — `__version__`, CLI `--version`, and serve UI footer match `pyproject.toml`.
+- **First-run demo** — `seed-sample` auto-provisions a local demo encryption key when none is configured.
+- **`schedule-install --dry-run`** — preview systemd/launchd/schtasks targets without installing.
+- **Docs** — README badge, `SECURITY.md`, and `SECURITY_AUDIT.md` on v0.4.2; open-data sample drops place-name label.
+
 ## [0.4.1] — 2026-11-17
 
 ### Fixed

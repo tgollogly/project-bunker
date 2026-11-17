@@ -60,8 +60,18 @@ def run_configured_sources(paths: ContinuityPaths, cfg: dict[str, Any]) -> list[
         if src is None:
             continue
         try:
-            results.append(src.sync(paths, cfg))
+            raw = src.sync(paths, cfg)
+            if isinstance(raw, dict):
+                results.append({**raw, "ok": True})
+            else:
+                results.append({"source_id": entry.get("id"), "ok": True, "detail": raw})
         except Exception as exc:
             logger.error("Source %s failed (local copies kept): %s", entry.get("id"), exc)
-            raise
+            results.append(
+                {
+                    "source_id": entry.get("id"),
+                    "ok": False,
+                    "error": str(exc),
+                }
+            )
     return results

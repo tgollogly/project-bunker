@@ -52,8 +52,8 @@ def test_sync_all_raises_when_graph_auth_fails(
         side_effect=RuntimeError("no auth"),
     ):
         with patch("bunker.continuity.sources.microsoft_graph.build_token_provider"):
-            with pytest.raises(RuntimeError, match="no auth"):
-                run_continuity_sync(paths, cfg)
+            results = run_continuity_sync(paths, cfg)
+    assert any(r.get("ok") is False for r in results)
 
 
 def test_probe_url_treats_401_as_up(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -3,7 +3,7 @@
 # Project Bunker
 
 [![CI](https://github.com/tgollogly/project-bunker/actions/workflows/ci.yml/badge.svg)](https://github.com/tgollogly/project-bunker/actions/workflows/ci.yml)
-![Version](https://img.shields.io/badge/version-0.4.0-informational)
+![Version](https://img.shields.io/badge/version-0.4.2-informational)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 
 **Keep an offline copy of what you need when the cloud goes down.**  

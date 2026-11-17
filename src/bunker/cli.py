@@ -7,6 +7,7 @@ from pathlib import Path
 
 import click
 
+from bunker import __version__
 from bunker.config import get_source, load_sources_config
 from bunker.continuity.config import load_continuity_config
 from bunker.continuity.encryption import rekey_tree
@@ -46,6 +47,7 @@ DEFAULT_CONFIG = "config/sources.yaml"
 
 
 @click.group()
+@click.version_option(__version__, prog_name="bunker")
 @click.option(
     "--config",
     "config_path",
@@ -164,7 +166,12 @@ def cmd_query(ctx: click.Context, sql: str) -> None:
     pattern = str(paths.parquet_root / "**" / "*.parquet")
     with BunkerDuckDB() as db:
         db.register_parquet_glob("bunker_data", pattern)
-        rel = db.query(sql.replace("bunker_data", "bunker_data"))
+        head = sql.lstrip().upper()
+        if not head.startswith(("SELECT", "WITH", "DESCRIBE", "SHOW", "PRAGMA", "EXPLAIN")):
+            raise click.ClickException(
+                "Only read-only queries are allowed (SELECT / WITH / DESCRIBE)."
+            )
+        rel = db.query(sql)
         rows = rel.fetchall()
         cols = [d[0] for d in rel.description] if rel.description else []
         if not rows:
@@ -199,6 +206,8 @@ def cmd_continuity_sync(ctx: click.Context) -> None:
         click.echo(f"ERROR: {exc}", err=True)
         sys.exit(1)
     click.echo(json.dumps(results, indent=2))
+    if any(isinstance(r, dict) and r.get("ok") is False for r in results):
+        sys.exit(1)
 
 
 @continuity.command("status")
@@ -223,10 +232,12 @@ def cmd_continuity_seed_sample(ctx: click.Context) -> None:
 
 @continuity.command("schedule-install")
 @click.option("--hours", default=6, help="Sync interval in hours")
-def cmd_continuity_schedule_install(hours: int) -> None:
-    from bunker.continuity.schedule import ScheduleSpec, install_schedule
+@click.option("--dry-run", is_flag=True, help="Print planned scheduler units without installing")
+def cmd_continuity_schedule_install(hours: int, dry_run: bool) -> None:
+    from bunker.continuity.schedule import ScheduleSpec, install_schedule, plan_schedule
 
-    result = install_schedule(ScheduleSpec(interval_hours=hours))
+    spec = ScheduleSpec(interval_hours=hours)
+    result = plan_schedule(spec) if dry_run else install_schedule(spec)
     click.echo(json.dumps(result, indent=2))
 
 

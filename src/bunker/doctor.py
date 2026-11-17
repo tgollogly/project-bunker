@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import stat
 import sys
 from dataclasses import dataclass
@@ -12,8 +11,10 @@ import yaml
 
 from bunker.config import load_sources_config
 from bunker.continuity.config import load_continuity_config
+from bunker.continuity.encryption import encryption_available
 from bunker.continuity.paths import ContinuityPaths
 from bunker.paths import BunkerPaths
+from bunker.secrets.store import get_secret, inject_secrets_into_environ
 
 
 @dataclass(frozen=True)
@@ -64,16 +65,17 @@ def _check_signing_key(paths: BunkerPaths) -> CheckResult:
 
 
 def _check_continuity_encryption(paths: ContinuityPaths, cfg: dict[str, Any]) -> CheckResult:
+    inject_secrets_into_environ(("data_key",))
     require = bool(cfg.get("continuity", {}).get("require_encryption"))
-    key_env = os.environ.get("BUNKER_DATA_KEY", "").strip()
     salt = paths.continuity_root / ".fernet_salt"
-    if require and not key_env and not salt.is_file():
+    has_key = encryption_available(paths.continuity_root) or salt.is_file()
+    if require and not has_key:
         return CheckResult(
             "continuity encryption",
             False,
-            "require_encryption set but BUNKER_DATA_KEY and .fernet_salt missing",
+            "require_encryption set but no data key (keychain/env) and .fernet_salt missing",
         )
-    if key_env or salt.is_file():
+    if has_key:
         return CheckResult("continuity encryption", True, "key or salt configured")
     return CheckResult(
         "continuity encryption",
@@ -83,13 +85,14 @@ def _check_continuity_encryption(paths: ContinuityPaths, cfg: dict[str, Any]) ->
 
 
 def _graph_credential_hint() -> bool:
-    token = os.environ.get("BUNKER_GRAPH_ACCESS_TOKEN", "").strip()
+    inject_secrets_into_environ()
+    token = (get_secret("graph.access_token") or "").strip()
     if token:
         return True
     trio = (
-        os.environ.get("BUNKER_GRAPH_TENANT_ID", "").strip(),
-        os.environ.get("BUNKER_GRAPH_CLIENT_ID", "").strip(),
-        os.environ.get("BUNKER_GRAPH_CLIENT_SECRET", "").strip(),
+        (get_secret("graph.tenant_id") or "").strip(),
+        (get_secret("graph.client_id") or "").strip(),
+        (get_secret("graph.client_secret") or "").strip(),
     )
     return all(trio)
 
