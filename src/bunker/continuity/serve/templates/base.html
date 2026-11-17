@@ -24,6 +24,7 @@
           <li><a href="/contacts" class="{% if active_nav == 'contacts' %}is-active{% endif %}">Contacts</a></li>
           <li><a href="/runbooks" class="{% if active_nav == 'runbooks' %}is-active{% endif %}">Runbooks</a></li>
           <li><a href="/status" class="{% if active_nav == 'status' %}is-active{% endif %}">Status</a></li>
+          <li><a href="/setup" class="{% if active_nav == 'setup' %}is-active{% endif %}">Setup</a></li>
         </ul>
       </nav>
     </div>
@@ -46,5 +47,9 @@
   <main id="main">
     {% block body %}{% endblock %}
   </main>
+  <footer class="site-footer">
+    <p>Bunker Continuity works with Microsoft 365, Google Workspace, iCal, and local files for compatibility only — not affiliated with or endorsed by Microsoft, Google, or any cloud provider. Trademarks belong to their owners. Software is provided under the MIT License, as is, with no warranty.</p>
+    <p><a href="/outage-pack.pdf">Download printable outage pack (PDF)</a></p>
+  </footer>
 </body>
 </html>

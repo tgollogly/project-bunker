@@ -47,9 +47,9 @@ def _set_watch(
 @pytest.mark.parametrize(
     ("state", "phrase", "banner_class"),
     [
-        (HealthState.OK, "Microsoft 365 is working", "status-banner--ok"),
-        (HealthState.DEGRADED, "Microsoft 365 is having problems", "status-banner--degraded"),
-        (HealthState.DOWN, "Microsoft 365 is DOWN", "status-banner--down"),
+        (HealthState.OK, "Cloud services look reachable", "status-banner--ok"),
+        (HealthState.DEGRADED, "Cloud services may be degraded", "status-banner--degraded"),
+        (HealthState.DOWN, "Cloud appears DOWN", "status-banner--down"),
     ],
 )
 def test_status_banner_states(

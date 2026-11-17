@@ -24,8 +24,8 @@ def test_duckdb_register_and_query(tmp_path: Path) -> None:
 
 
 def test_load_project_sources() -> None:
-    cfg_path = Path("/workspace/config/sources.yaml")
-    if not cfg_path.is_file():
-        return
+    root = Path(__file__).resolve().parents[1]
+    cfg_path = root / "examples" / "open-data" / "sources.yaml"
+    assert cfg_path.is_file()
     cfg = load_sources_config(cfg_path)
     assert cfg.get("sources")

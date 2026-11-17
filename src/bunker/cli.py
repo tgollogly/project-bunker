@@ -54,7 +54,7 @@ DEFAULT_CONFIG = "config/sources.yaml"
 )
 @click.pass_context
 def main(ctx: click.Context, config_path: Path) -> None:
-    """Project Bunker — offline-first DuckDB data engine."""
+    """Project Bunker — keep an offline copy when the cloud goes down."""
     root = _project_root()
     cfg = load_sources_config(root / config_path if not config_path.is_absolute() else config_path)
     paths = BunkerPaths.from_config(root, cfg)
@@ -186,7 +186,7 @@ def _continuity_cfg() -> tuple[ContinuityPaths, dict]:
 
 @main.group()
 def continuity() -> None:
-    """Bunker Continuity — Microsoft 365 outage resilience."""
+    """Bunker Continuity — offline copy when the cloud goes down."""
 
 
 @continuity.command("sync")
@@ -219,6 +219,35 @@ def cmd_continuity_seed_sample(ctx: click.Context) -> None:
         click.echo(f"ERROR: {exc}", err=True)
         sys.exit(1)
     click.echo(json.dumps(out, indent=2))
+
+
+@continuity.command("schedule-install")
+@click.option("--hours", default=6, help="Sync interval in hours")
+def cmd_continuity_schedule_install(hours: int) -> None:
+    from bunker.continuity.schedule import ScheduleSpec, install_schedule
+
+    result = install_schedule(ScheduleSpec(interval_hours=hours))
+    click.echo(json.dumps(result, indent=2))
+
+
+@continuity.command("schedule-uninstall")
+def cmd_continuity_schedule_uninstall() -> None:
+    from bunker.continuity.schedule import ScheduleSpec, uninstall_schedule
+
+    result = uninstall_schedule(ScheduleSpec())
+    click.echo(json.dumps(result, indent=2))
+
+
+@continuity.command("outage-pack")
+@click.pass_context
+def cmd_continuity_outage_pack(ctx: click.Context) -> None:
+    paths, cfg = _continuity_cfg()
+    from bunker.continuity.outage_pack import generate_outage_pack_pdf
+
+    cont = cfg.get("continuity", {})
+    days = int(cont.get("outage_pack_days", 7))
+    out = generate_outage_pack_pdf(paths, days=days)
+    click.echo(json.dumps({"path": str(out)}, indent=2))
 
 
 @continuity.command("rekey")

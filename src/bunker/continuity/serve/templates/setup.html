@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}First-run setup — Bunker Continuity{% endblock %}
+{% block body %}
+<section class="card">
+  <h1>First-run setup</h1>
+  <p>Choose what to keep offline, sign in to cloud providers (optional), and set a local password for LAN access.</p>
+  <form method="post" action="/setup" class="setup-form">
+    <fieldset>
+      <legend>Sources to sync</legend>
+      <label><input type="checkbox" name="sources" value="microsoft_graph"> Microsoft cloud (Graph API)</label>
+      <label><input type="checkbox" name="sources" value="google_workspace"> Google Workspace</label>
+      <label><input type="checkbox" name="sources" value="ical"> iCal URLs (.ics)</label>
+      <label><input type="checkbox" name="sources" value="contacts_file"> CSV / vCard contacts</label>
+      <label><input type="checkbox" name="sources" value="local_folder"> Local document folder</label>
+    </fieldset>
+    <fieldset>
+      <legend>Microsoft app registration</legend>
+      <p class="hint">Create an Azure app with <code>Calendars.Read</code>, <code>Contacts.Read</code>, and device-code or client-secret flow. Names used descriptively only; not affiliated with Microsoft.</p>
+      <label>Tenant ID <input name="graph_tenant" autocomplete="off"></label>
+      <label>Client ID <input name="graph_client_id" autocomplete="off"></label>
+      <label>Client secret (optional) <input name="graph_client_secret" type="password" autocomplete="new-password"></label>
+    </fieldset>
+    <fieldset>
+      <legend>Google OAuth</legend>
+      <p class="hint">Google Cloud OAuth client with Calendar + People + Drive read scopes. Publish as desktop app or use device code; store refresh token here.</p>
+      <label>Client ID <input name="google_client_id" autocomplete="off"></label>
+      <label>Refresh token <input name="google_refresh_token" type="password" autocomplete="new-password"></label>
+    </fieldset>
+    <fieldset>
+      <legend>Other inputs</legend>
+      <label>iCal URLs (one per line)<textarea name="ical_urls" rows="3"></textarea></label>
+      <label>Contact files (one path per line)<textarea name="contacts_paths" rows="2"></textarea></label>
+      <label>Local folder path <input name="local_folder"></label>
+    </fieldset>
+    <fieldset>
+      <legend>Security</legend>
+      <label>Encryption passphrase or Fernet key <input name="data_passphrase" type="password" required autocomplete="new-password"></label>
+      <label>Web UI password (LAN access) <input name="serve_password" type="password" autocomplete="new-password"></label>
+      <label>Sync every (hours) <input name="interval_hours" type="number" min="1" max="168" value="6"></label>
+    </fieldset>
+    <button type="submit">Save and finish setup</button>
+  </form>
+  <p class="legal-footer">Secrets are stored in your OS keychain when available, with environment-variable fallback. Software provided MIT “as is”, no warranty.</p>
+</section>
+{% endblock %}

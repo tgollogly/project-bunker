@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "project-bunker"
-version = "0.3.6"
-description = "Resilient, offline-first DuckDB and P2P data engine for Project Bunker"
+version = "0.4.0"
+description = "Offline-first continuity kit — local copies of calendar, contacts, and documents when the cloud goes down"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
@@ -27,6 +27,9 @@ dependencies = [
   "jinja2>=3.1.0",
   "python-multipart>=0.0.9",
   "tzdata>=2024.1; platform_system == 'Windows'",
+  "keyring>=25.0.0",
+  "icalendar>=6.0.0",
+  "fpdf2>=2.8.0",
 ]
 
 [project.optional-dependencies]
@@ -36,6 +39,11 @@ dev = [
   "ruff>=0.6.0",
   "mypy>=1.13.0",
   "types-PyYAML>=6.0.12",
+  "bandit>=1.7.10",
+  "pip-audit>=2.7.0",
+]
+installer = [
+  "pyinstaller>=6.11.0",
 ]
 mdns = [
   "zeroconf>=0.132.0",
@@ -67,5 +75,5 @@ packages = ["bunker"]
 mypy_path = "src"
 
 [[tool.mypy.overrides]]
-module = ["pyarrow.*", "zeroconf.*", "msal.*", "fastapi.*", "uvicorn.*"]
+module = ["pyarrow.*", "zeroconf.*", "msal.*", "fastapi.*", "uvicorn.*", "keyring.*", "icalendar.*", "fpdf.*"]
 ignore_missing_imports = true

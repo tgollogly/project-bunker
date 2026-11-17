@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.4.0] — 2026-11-17
+
+### Added
+
+- **Universal continuity focus** — primary story: keep an offline copy when the cloud goes down; vendor-neutral UI copy.
+- **Pluggable sync sources** — Microsoft Graph, Google Workspace, iCal URLs/files, CSV/vCard contacts, local document folders (`continuity.sync_sources`).
+- **OS keychain secrets** (`keyring`) with `BUNKER_*` env fallback (`bunker.secrets`).
+- **First-run setup wizard** at `/setup` in the web UI (sources, credentials, schedule, encryption passphrase).
+- **Scheduled sync** — `bunker continuity schedule-install` (systemd user timer, launchd, Windows Task Scheduler).
+- **Outage pack PDF** after each sync; `bunker continuity outage-pack` and `/outage-pack.pdf`.
+- **Install** — `scripts/install-bunker.sh` (pipx); Windows portable CI artifact (`windows-portable` job).
+- **Open-data demo** moved to `examples/open-data/sources.yaml`; default `config/sources.yaml` is continuity-first (empty sources list).
+- **Security** — CI `security` job (bandit, pip-audit); [docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md).
+
+### Changed
+
+- README rewritten for non-technical readers; trademark-safe taglines; updated honest-limitations table.
+- Web status banner text is vendor-neutral (“Cloud services…”).
+- Calendar/contacts views aggregate all source partitions.
+- Version **0.4.0** in `pyproject.toml`.
+
 ## [0.3.6] — 2026-11-14
 
 ### Fixed

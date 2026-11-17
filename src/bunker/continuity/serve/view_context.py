@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from bunker.continuity.parquet_io import query_rows_from_root
+from bunker.continuity.aggregate import query_all_calendar_rows, query_all_contact_rows
 from bunker.continuity.paths import ContinuityPaths
 from bunker.continuity.status import continuity_status
 from bunker.continuity.storage import iter_encrypted_doc_files, read_encrypted_file
@@ -18,15 +18,15 @@ _LONDON = ZoneInfo("Europe/London")
 _BANNER = {
     HealthState.OK: (
         "status-banner--ok",
-        "Microsoft 365 is working",
+        "Cloud services look reachable",
     ),
     HealthState.DEGRADED: (
         "status-banner--degraded",
-        "Microsoft 365 is having problems",
+        "Cloud services may be degraded",
     ),
     HealthState.DOWN: (
         "status-banner--down",
-        "Microsoft 365 is DOWN — use this page",
+        "Cloud appears DOWN — use your offline copy",
     ),
 }
 
@@ -166,12 +166,10 @@ def base_page_context(
 
 
 def load_meetings(paths: ContinuityPaths, *, limit: int = 5) -> list[MeetingCard]:
-    raw = query_rows_from_root(
-        paths.parquet_root / "m365" / "calendar",
-        ["subject", "start", "end", "location"],
-        order_by="start",
+    raw = query_all_calendar_rows(
+        paths,
+        columns=["subject", "start", "end", "location"],
         limit=100,
-        continuity_root=paths.continuity_root,
     )
     cards: list[MeetingCard] = []
     for subj, start, _end, loc in raw[:limit]:
@@ -201,12 +199,10 @@ def _short_time(iso: str) -> str:
 
 
 def load_contacts(paths: ContinuityPaths, *, q: str = "", limit: int = 200) -> list[ContactCard]:
-    raw = query_rows_from_root(
-        paths.parquet_root / "m365" / "contacts",
-        ["display_name", "email", "mobile", "company"],
-        order_by="display_name",
+    raw = query_all_contact_rows(
+        paths,
+        columns=["display_name", "email", "mobile", "company"],
         limit=limit,
-        continuity_root=paths.continuity_root,
     )
     needle = q.strip().lower()
     rows: list[ContactCard] = []

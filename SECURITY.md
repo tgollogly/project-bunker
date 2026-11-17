@@ -10,7 +10,7 @@ Calendar and contact snapshots may contain **personal data**. Bunker Continuity:
 - Does **not** delete local copies when cloud sync fails (availability over automatic erasure).
 - Supports `retention_days` in `config/continuity.yaml` — implement archival/purge procedures in your organisation (automation not enabled by default).
 
-**Data controller:** your organisation. **Purpose:** business continuity during Microsoft 365 outages. **Lawful basis:** typically legitimate interests or public task (verify with your DPO).
+**Data controller:** your organisation. **Purpose:** business continuity during cloud outages (Microsoft, Google, iCal, or local sources). **Lawful basis:** typically legitimate interests or public task (verify with your DPO).
 
 ## Encryption
 
@@ -23,7 +23,7 @@ Calendar and contact snapshots may contain **personal data**. Bunker Continuity:
 | `BUNKER_MESH_KEY` | HMAC for LAN UDP alerts (16+ bytes) |
 | `BUNKER_MATRIX_ACCESS_TOKEN` | Matrix bot token (treat as secret) |
 
-Never commit credentials. Use environment variables or your OS secret store.
+Never commit credentials. v0.4.0 stores wizard and sync secrets in the **OS keychain** (`keyring`, service name `project-bunker`) with **`BUNKER_*` environment variable fallback**. See [docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md).
 
 Plaintext Parquet or document bytes are **not** written to disk for continuity data; the serve UI decrypts in memory for display/query.
 

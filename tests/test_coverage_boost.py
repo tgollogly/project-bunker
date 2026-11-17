@@ -166,19 +166,20 @@ def test_sync_all_sharepoint_error_path(
             ],
         }
     }
-    with patch("bunker.continuity.sync_all.HttpxGraphClient") as mock_client:
+    with patch("bunker.continuity.sources.microsoft_graph.HttpxGraphClient") as mock_client:
         mock_client.return_value = FakeGraph()
-        with patch("bunker.continuity.sync_all.build_token_provider"):
-            with patch("bunker.continuity.sync_all.sync_calendars") as sc:
-                with patch("bunker.continuity.sync_all.sync_contacts") as sct:
+        with patch("bunker.continuity.sources.microsoft_graph.build_token_provider"):
+            with patch("bunker.continuity.sources.microsoft_graph.sync_calendars") as sc:
+                with patch("bunker.continuity.sources.microsoft_graph.sync_contacts") as sct:
                     with patch(
-                        "bunker.continuity.sync_all.sync_sharepoint_folder",
+                        "bunker.continuity.sources.microsoft_graph.sync_sharepoint_folder",
                         side_effect=RuntimeError("sp down"),
                     ):
                         sc.return_value = {"ok": True}
                         sct.return_value = {"ok": True}
-                        out = run_continuity_sync(paths, cfg)
-    assert len(out) == 2
+                        with patch("bunker.continuity.sync_all.generate_outage_pack_pdf"):
+                            out = run_continuity_sync(paths, cfg)
+    assert len(out) == 1
 
 
 def test_merge_hints_from_config() -> None:

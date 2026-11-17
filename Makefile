@@ -19,11 +19,11 @@ typecheck: init
 
 ingest-demo: init
 	@$(BIN)/bunker keygen --force 2>/dev/null || $(BIN)/bunker keygen
-	@$(BIN)/bunker ingest --source usgs_earthquakes_day
+	@$(BIN)/bunker --config examples/open-data/sources.yaml ingest --source usgs_earthquakes_day
 
 ingest-all: init
 	@$(BIN)/bunker keygen 2>/dev/null || true
-	@$(BIN)/bunker ingest-all
+	@$(BIN)/bunker --config examples/open-data/sources.yaml ingest-all
 
 ingest-offline: init
 	@$(BIN)/bunker ingest-all --offline

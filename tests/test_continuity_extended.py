@@ -87,10 +87,15 @@ def test_run_continuity_sync_mocked(tmp_path: Path, bunker_data_key: str) -> Non
         }
     }
     tok = StaticTokenProvider("t")
-    with patch("bunker.continuity.sync_all.build_token_provider", return_value=tok):
-        with patch("bunker.continuity.sync_all.HttpxGraphClient", return_value=FakeGraph()):
-            results = run_continuity_sync(paths, cfg)
-    assert len(results) == 2
+    with patch("bunker.continuity.sources.microsoft_graph.build_token_provider", return_value=tok):
+        with patch(
+            "bunker.continuity.sources.microsoft_graph.HttpxGraphClient",
+            return_value=FakeGraph(),
+        ):
+            with patch("bunker.continuity.sync_all.generate_outage_pack_pdf"):
+                results = run_continuity_sync(paths, cfg)
+    assert len(results) == 1
+    assert results[0]["type"] == "microsoft_graph"
 
 
 def test_matrix_send_mocked() -> None:
