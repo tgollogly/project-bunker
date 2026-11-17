@@ -97,7 +97,13 @@ def _draw_calendar_patch() -> Image.Image:
         for col_idx, day in enumerate(week):
             if day == 0:
                 continue
-            _text_center(draw, (COL_CENTERS[col_idx] - x0, row_y - y0), str(day), font_day, DAY_TEXT)
+            _text_center(
+                draw,
+                (COL_CENTERS[col_idx] - x0, row_y - y0),
+                str(day),
+                font_day,
+                DAY_TEXT,
+            )
 
     return patch
 
