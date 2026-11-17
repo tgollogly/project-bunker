@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/images/banner.png?v=20261117" alt="Project Bunker: keep an offline copy when the cloud goes down. Free and open source, MIT License." width="100%"></p>
+<p align="center"><a href="docs/images/banner-2026.png"><img src="docs/images/banner-2026.png" alt="Project Bunker: keep an offline copy when the cloud goes down. Free and open source, MIT License." width="100%"></a></p>
 
 # Project Bunker
 
